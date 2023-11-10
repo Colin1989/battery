@@ -32,24 +32,16 @@ func newDeadLetter(actorSystem *ActorSystem) *deadLetter {
 	return dl
 }
 
-func (dp *deadLetter) SendUserMessage(pid *PID, message interface{}) {
+func (dp *deadLetter) Send(pid *PID, message interface{}) {
 	//TODO need add metrics
 
-	_, msg, sender := UnwrapEnvelope(message)
-	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
-		PID:     pid,
-		Message: msg,
-		Sender:  sender,
-	})
-}
-
-func (dp *deadLetter) SendSystemMessage(pid *PID, message interface{}) {
 	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
 		PID:     pid,
 		Message: message,
+		Sender:  nil,
 	})
 }
 
 func (dp *deadLetter) Stop(pid *PID) {
-	dp.SendSystemMessage(pid, stopMessage)
+	dp.Send(pid, stopMessage)
 }
