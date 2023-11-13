@@ -59,6 +59,9 @@ func (envelope *MessageEnvelope) SetHeader(key string, value string) {
 
 var EmptyMessageHeader = make(messageHeader)
 
-func WrapEnvelope(sender *PID, message interface{}) *MessageEnvelope {
-	return &MessageEnvelope{nil, message, sender}
+func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *PID) {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Header, env.Message, env.Sender
+	}
+	return nil, message, nil
 }

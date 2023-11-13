@@ -7,8 +7,26 @@ type Context interface {
 	basePart
 	messagePart
 	senderPart
+	receiverPart
 	spawnerPart
 	stopperPart
+}
+
+type SenderContext interface {
+	infoPart
+	senderPart
+	messagePart
+}
+
+type ReceiverContext interface {
+	infoPart
+	receiverPart
+	messagePart
+}
+
+type SpawnerContext interface {
+	infoPart
+	spawnerPart
 }
 
 type infoPart interface {
@@ -28,17 +46,26 @@ type basePart interface {
 	// ReceiveTimeout returns the current timeout
 	ReceiveTimeout() time.Duration
 
+	// SetReceiveTimeout sets the inactivity timeout, after which a ReceiveTimeout message will be sent to the actor.
+	// A duration of less than 1ms will disable the inactivity timer.
+	//
+	// If a message is received before the duration d, the timer will be reset. If the message conforms to
+	// the NotInfluenceReceiveTimeout interface, the timer will not be reset
+	SetReceiveTimeout(d time.Duration)
+
+	CancelReceiveTimeout()
+
 	// Children returns a slice of the actors children
 	Children() []*PID
 
 	// Respond sends a response to the current `Sender`
 	// If the Sender is nil, the actor will panic
-	Respond(response interface{})
+	Respond(response *MessageEnvelope)
 }
 
 type messagePart interface {
 	// Message returns the current message to be processed
-	Message() interface{}
+	Message() *MessageEnvelope
 
 	// MessageHeader returns the meta information for the currently processed message
 	MessageHeader() ReadonlyMessageHeader
@@ -49,25 +76,26 @@ type senderPart interface {
 	Sender() *PID
 
 	// Send sends a message to the given PID
-	Send(pid *PID, message interface{})
+	Send(pid *PID, envelope *MessageEnvelope)
+}
 
-	// SendEnvelope wrap the message into an envelope and send the envelope to the given PID.
-	SendEnvelope(pid *PID, message interface{})
+type receiverPart interface {
+	Receive(envelope *MessageEnvelope)
 }
 
 type spawnerPart interface {
-	//// Spawn starts a new child actor based on props and named with a unique id
-	//Spawn(props *Props) *PID
+	// Spawn starts a new child actor based on props and named with a unique id
+	Spawn(props *Props) *PID
+
+	// SpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id
+	SpawnPrefix(props *Props, prefix string) *PID
+
+	// SpawnNamed starts a new child actor based on props and named using the specified name
 	//
-	//// SpawnPrefix starts a new child actor based on props and named using a prefix followed by a unique id
-	//SpawnPrefix(props *Props, prefix string) *PID
+	// ErrNameExists will be returned if id already exists
 	//
-	//// SpawnNamed starts a new child actor based on props and named using the specified name
-	////
-	//// ErrNameExists will be returned if id already exists
-	////
-	//// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
-	//SpawnNamed(props *Props, id string) (*PID, error)
+	// Please do not use name sharing same pattern with system actors, for example "YourPrefix$1", "Remote$1", "future$1"
+	SpawnNamed(props *Props, id string) (*PID, error)
 }
 
 type stopperPart interface {

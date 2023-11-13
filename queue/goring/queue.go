@@ -5,23 +5,23 @@ import (
 	"sync/atomic"
 )
 
-type ringBuffer struct {
-	buffer []interface{}
+type ringBuffer[T any] struct {
+	buffer []T
 	head   int64
 	tail   int64
 	mod    int64
 }
 
-type Queue struct {
+type Queue[T any] struct {
 	len     int64
-	content *ringBuffer
+	content *ringBuffer[T]
 	lock    sync.Mutex
 }
 
-func New(initialSize int64) *Queue {
-	return &Queue{
-		content: &ringBuffer{
-			buffer: make([]interface{}, initialSize),
+func New[T any](initialSize int64) *Queue[T] {
+	return &Queue[T]{
+		content: &ringBuffer[T]{
+			buffer: make([]T, initialSize),
 			head:   0,
 			tail:   0,
 			mod:    initialSize,
@@ -30,7 +30,7 @@ func New(initialSize int64) *Queue {
 	}
 }
 
-func (q *Queue) Push(item interface{}) {
+func (q *Queue[T]) Push(item T) {
 	q.lock.Lock()
 	c := q.content
 	c.tail = (c.tail + 1) % c.mod
@@ -39,14 +39,14 @@ func (q *Queue) Push(item interface{}) {
 		// we need to resize
 
 		newLen := c.mod * fillFactor
-		newBuff := make([]interface{}, newLen)
+		newBuff := make([]T, newLen)
 
 		for i := int64(0); i < c.mod; i++ {
 			buffIndex := (c.tail + i) % c.mod
 			newBuff[i] = c.buffer[buffIndex]
 		}
 		// set the new buffer and reset head and tail
-		newContent := &ringBuffer{
+		newContent := &ringBuffer[T]{
 			buffer: newBuff,
 			head:   0,
 			tail:   c.mod,
@@ -59,18 +59,19 @@ func (q *Queue) Push(item interface{}) {
 	q.lock.Unlock()
 }
 
-func (q *Queue) Length() int64 {
+func (q *Queue[T]) Length() int64 {
 	return atomic.LoadInt64(&q.len)
 }
 
-func (q *Queue) Empty() bool {
+func (q *Queue[T]) Empty() bool {
 	return q.Length() == 0
 }
 
 // single consumer
-func (q *Queue) Pop() (interface{}, bool) {
+func (q *Queue[T]) Pop() (T, bool) {
+	var t T
 	if q.Empty() {
-		return nil, false
+		return t, false
 	}
 	// as we are a single consumer, no other thread can have poped the items there are guaranteed to be items now
 
@@ -78,17 +79,18 @@ func (q *Queue) Pop() (interface{}, bool) {
 	c := q.content
 	c.head = (c.head + 1) % c.mod
 	res := c.buffer[c.head]
-	c.buffer[c.head] = nil
+	c.buffer[c.head] = t
 	atomic.AddInt64(&q.len, -1)
 	q.lock.Unlock()
 	return res, true
 }
 
-func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
+func (q *Queue[T]) PopMany(count int64) ([]T, bool) {
 	if q.Empty() {
 		return nil, false
 	}
 
+	var t T
 	q.lock.Lock()
 	c := q.content
 
@@ -97,11 +99,11 @@ func (q *Queue) PopMany(count int64) ([]interface{}, bool) {
 	}
 	atomic.AddInt64(&q.len, -count)
 
-	buffer := make([]interface{}, count)
+	buffer := make([]T, count)
 	for i := int64(0); i < count; i++ {
 		pos := (c.head + 1 + i) % c.mod
 		buffer[i] = c.buffer[pos]
-		c.buffer[pos] = nil
+		c.buffer[pos] = t
 	}
 	c.head = (c.head + count) % c.mod
 

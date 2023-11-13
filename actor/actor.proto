@@ -3,6 +3,24 @@ package actor;
 option go_package = "github.com/colin1989/battery/actor";
 
 message PID {
-string address = 1;
-string ID = 2;
+  string address = 1;
+  string ID = 2;
+}
+
+//user messages
+message PoisonPill {
+}
+
+message Stop {
+}
+
+message Terminated {
+  PID who = 1;
+  TerminatedReason Why = 2;
+}
+
+enum TerminatedReason {
+  Stopped = 0;
+  AddressTerminated = 1;
+  NotFound = 2;
 }
