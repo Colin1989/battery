@@ -6,8 +6,12 @@ import (
 	"sync/atomic"
 )
 
+type EventMessage interface {
+	EventMessage()
+}
+
 // Handler defines a callback function that must be pass when subscribing.
-type Handler func(msg interface{})
+type Handler func(evt EventMessage)
 
 type EventStream struct {
 	sync.RWMutex
@@ -77,7 +81,7 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 	}
 }
 
-func (es *EventStream) Publish(evt interface{}) {
+func (es *EventStream) Publish(evt EventMessage) {
 	subs := make([]*Subscription, 0, es.Length())
 	es.RLock()
 	for _, sub := range es.subscriptions {

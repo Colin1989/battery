@@ -13,6 +13,10 @@ type DeadLetterEvent struct {
 	Sender  *PID // 发送者
 }
 
+var _ EventMessage = &DeadLetterEvent{}
+
+func (d *DeadLetterEvent) EventMessage() {}
+
 func newDeadLetter(actorSystem *ActorSystem) *deadLetter {
 	dl := &deadLetter{
 		actorSystem: actorSystem,
@@ -20,7 +24,7 @@ func newDeadLetter(actorSystem *ActorSystem) *deadLetter {
 	dl.pid, _ = actorSystem.ProcessRegistry.Add(dl, "deadLetter")
 
 	// subscribe DeadLetterEvent
-	actorSystem.EventStream.Subscribe(func(msg interface{}) {
+	actorSystem.EventStream.Subscribe(func(msg EventMessage) {
 		dlEvent, ok := msg.(*DeadLetterEvent)
 		if !ok {
 			return
