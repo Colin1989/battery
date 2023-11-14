@@ -41,6 +41,7 @@ func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actor
 		props:       props,
 		parent:      parent,
 	}
+	ac.incarnateActor()
 	return ac
 }
 
@@ -76,20 +77,57 @@ func (ac *actorContext) SetReceiveTimeout(d time.Duration) {
 		return
 	}
 
-	ac.receiveTimeout = d
-	ac.receiveTimeoutTimer = time.AfterFunc(d, ac.receiveTimeoutHandler)
-}
+	ac.stopReceiveTimeoutTimer()
 
-func (ac *actorContext) receiveTimeoutHandler() {
-	ac.CancelReceiveTimeout()
-	ac.Send(ac.self, makeMessage[ReceiveTimeout]())
+	ac.receiveTimeout = d
+	if ac.receiveTimeoutTimer == nil {
+		ac.initReceiveTimeoutTimer(time.AfterFunc(d, ac.receiveTimeoutHandler))
+	} else {
+		ac.resetReceiveTimeoutTimer(d)
+	}
 }
 
 func (ac *actorContext) CancelReceiveTimeout() {
 	if ac.receiveTimeoutTimer == nil {
 		return
 	}
+
+	ac.killReceiveTimeoutTimer()
 	ac.receiveTimeout = 0
+}
+
+func (ac *actorContext) initReceiveTimeoutTimer(timer *time.Timer) {
+	ac.receiveTimeoutTimer = timer
+}
+
+func (ac *actorContext) resetReceiveTimeoutTimer(time time.Duration) {
+	if ac.receiveTimeoutTimer == nil {
+		return
+	}
+
+	ac.receiveTimeoutTimer.Reset(time)
+}
+
+func (ac *actorContext) receiveTimeoutHandler() {
+	ac.CancelReceiveTimeout()
+	ac.self.sendSystemMessage(ac.actorSystem, receiveTimeoutMessage)
+}
+
+func (ac *actorContext) stopReceiveTimeoutTimer() {
+	if ac.receiveTimeoutTimer == nil {
+		return
+	}
+
+	ac.receiveTimeoutTimer.Stop()
+}
+
+func (ac *actorContext) killReceiveTimeoutTimer() {
+	if ac.receiveTimeoutTimer == nil {
+		return
+	}
+
+	ac.receiveTimeoutTimer.Stop()
+	ac.receiveTimeoutTimer = nil
 }
 
 //
@@ -203,7 +241,7 @@ func (ac *actorContext) Stop(pid *PID) {
 }
 
 func (ac *actorContext) Poison(pid *PID) {
-	pid.sendUserMessage(ac.actorSystem, makeMessage[PoisonPill]())
+	pid.sendUserMessage(ac.actorSystem, poisonPillMessage())
 }
 
 //
@@ -215,10 +253,27 @@ func (ac *actorContext) incarnateActor() {
 	ac.actor = ac.props.producer()
 }
 
-func (ac *actorContext) InvokeSystemMessage(message *MessageEnvelope) {
-	switch message.Message.(type) {
+func (ac *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+	ac.self.sendSystemMessage(ac.actorSystem, suspendMailboxMessage)
+
+	failure := &Failure{
+		Reason: reason,
+		Who:    ac.self,
+		//RestartStats: ctx.ensureExtras().restartStats(),
+		Message: message,
+	}
+
+	if ac.parent == nil {
+		ac.handleRootFailure(failure)
+	} else {
+		ac.parent.sendSystemMessage(ac.actorSystem, failure)
+	}
+}
+
+func (ac *actorContext) InvokeSystemMessage(message SystemMessage) {
+	switch message.(type) {
 	case *Started:
-		ac.InvokeUserMessage(message)
+		ac.InvokeUserMessage(startedMessageEnvelope())
 	case *Stop:
 		ac.handleStop()
 	case *Terminated:
@@ -230,9 +285,39 @@ func (ac *actorContext) InvokeSystemMessage(message *MessageEnvelope) {
 	}
 }
 
-func (ac *actorContext) InvokeUserMessage(message *MessageEnvelope) {
-	//TODO implement me
-	panic("implement me")
+func (ac *actorContext) handleRootFailure(failure *Failure) {
+	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Message)
+	fmt.Printf("handleRootFailure ： %+v", failure)
+}
+
+func (ac *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
+	if atomic.LoadInt32(&ac.state) == stateStopped {
+		return
+	}
+
+	_, msg, _ := UnwrapEnvelope(envelope)
+
+	influenceTimeout := true
+	if ac.receiveTimeout > 0 {
+		_, influenceTimeout = msg.(NotInfluenceReceiveTimeout)
+		influenceTimeout = !influenceTimeout
+
+		if influenceTimeout {
+			ac.stopReceiveTimeoutTimer()
+		}
+	}
+
+	ac.processMessage(envelope)
+
+	if ac.receiveTimeout > 0 && influenceTimeout {
+		ac.resetReceiveTimeoutTimer(ac.receiveTimeout)
+	}
+}
+
+func (ac *actorContext) processMessage(envelope *MessageEnvelope) {
+	ac.envelope = envelope
+	ac.defaultReceive()
+	ac.envelope = nil
 }
 
 // I am stopping.
@@ -244,23 +329,23 @@ func (ac *actorContext) handleStop() {
 
 	atomic.StoreInt32(&ac.state, stateStopping)
 
-	ac.InvokeUserMessage(makeMessage[Stopping]())
+	ac.InvokeUserMessage(stoppingMessage())
 	ac.stopAllChildren()
 	ac.tryRestartOrTerminate()
 }
 
 // child stopped, check if we can stop or restart (if needed).
-func (ac *actorContext) handleTerminated(message *MessageEnvelope) {
-	terminated, _ := message.Message.(*Terminated)
+func (ac *actorContext) handleTerminated(message SystemMessage) {
+	terminated, _ := message.(*Terminated)
 	ac.children.Remove(terminated.Who)
 
-	ac.InvokeUserMessage(message)
+	//ac.InvokeUserMessage(message)
 	ac.tryRestartOrTerminate()
 }
 
 func (ac *actorContext) handleRestart() {
 	atomic.StoreInt32(&ac.state, stateRestarting)
-	ac.InvokeUserMessage(makeMessage[Restarting]())
+	ac.InvokeUserMessage(restartingMessage())
 	ac.stopAllChildren()
 	ac.tryRestartOrTerminate()
 }
@@ -289,8 +374,8 @@ func (ac *actorContext) tryRestartOrTerminate() {
 
 func (ac *actorContext) restart() {
 	ac.incarnateActor()
-	ac.self.sendSystemMessage(ac.actorSystem, makeMessage[ResumeMailbox]())
-	ac.InvokeUserMessage(makeMessage[Started]())
+	ac.self.sendSystemMessage(ac.actorSystem, resumeMailboxMessage)
+	ac.InvokeUserMessage(startedMessageEnvelope())
 
 	//if ctx.extras != nil && ctx.extras.stash != nil {
 	//	for !ctx.extras.stash.Empty() {
@@ -302,13 +387,9 @@ func (ac *actorContext) restart() {
 
 func (ac *actorContext) finalizeStop() {
 	ac.actorSystem.ProcessRegistry.Remove(ac.self)
-	ac.InvokeUserMessage(makeMessage[Stopped]())
+	ac.InvokeUserMessage(stoppedMessage())
 
-	otherStopped := &MessageEnvelope{
-		Header:  nil,
-		Message: &Terminated{Who: ac.self},
-		Sender:  nil,
-	}
+	otherStopped := &Terminated{Who: ac.self}
 	//// Notify watchers
 	//if ctx.extras != nil {
 	//	ctx.extras.watchers.ForEach(func(i int, pid *PID) {

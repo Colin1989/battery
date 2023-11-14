@@ -6,8 +6,8 @@ import "github.com/lithammer/shortuuid/v4"
 type ActorSystem struct {
 	ProcessRegistry *ProcessRegistry
 	Root            *RootContext
-	DeadLetter      *deadLetter
 	EventStream     *EventStream
+	DeadLetter      *deadLetter
 	Config          *Config
 
 	ID      string
@@ -26,8 +26,8 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	actorSystem.stopper = make(chan struct{}, 1)
 	actorSystem.ProcessRegistry = NewProcessRegistry(actorSystem)
 	actorSystem.Root = NewRootContext(actorSystem, EmptyMessageHeader)
-	actorSystem.DeadLetter = newDeadLetter(actorSystem)
 	actorSystem.EventStream = NewEventStream()
+	actorSystem.DeadLetter = newDeadLetter(actorSystem)
 
 	return actorSystem
 }

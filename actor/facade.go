@@ -3,7 +3,7 @@ package actor
 // A Process is an interface that defines the base contract for interaction of actors
 type Process interface {
 	SendUserMessage(pid *PID, envelope *MessageEnvelope)
-	SendSystemMessage(pid *PID, envelope *MessageEnvelope)
+	SendSystemMessage(pid *PID, message SystemMessage)
 	Stop(pid *PID)
 }
 
@@ -21,7 +21,7 @@ type Actor interface {
 	Receive(c Context)
 }
 
-type queue interface {
-	Push(envelope *MessageEnvelope)
-	Pop() (*MessageEnvelope, bool)
+type queue[T any] interface {
+	Push(envelope T)
+	Pop() (T, bool)
 }

@@ -39,6 +39,6 @@ func (pid *PID) sendUserMessage(actorSystem *ActorSystem, envelope *MessageEnvel
 }
 
 //goland:noinspection GoReceiverNames.
-func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, envelope *MessageEnvelope) {
-	pid.ref(actorSystem).SendSystemMessage(pid, envelope)
+func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message SystemMessage) {
+	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }

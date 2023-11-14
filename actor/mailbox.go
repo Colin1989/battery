@@ -11,14 +11,15 @@ type Mailbox interface {
 	Start()
 	Count() int
 	PostUserMessage(message *MessageEnvelope)
-	PostSystemMessage(message *MessageEnvelope)
+	PostSystemMessage(message SystemMessage)
 	RegisterHandlers(invoker Invoker, dispatcher Dispatcher)
 }
 
 // Invoker is the interface used by a mailbox to forward messages for processing
 type Invoker interface {
-	InvokeSystemMessage(message *MessageEnvelope)
-	InvokeUserMessage(message *MessageEnvelope)
+	InvokeSystemMessage(message SystemMessage)
+	InvokeUserMessage(envelope *MessageEnvelope)
+	EscalateFailure(reason interface{}, message interface{})
 }
 
 // MailboxProducer is a function which creates a new mailbox
@@ -30,8 +31,8 @@ const (
 )
 
 type defaultMailbox struct {
-	userMailbox   queue
-	systemMailbox queue
+	userMailbox   queue[*MessageEnvelope]
+	systemMailbox queue[SystemMessage]
 	dispatcher    Dispatcher
 	invoker       Invoker
 	//middlewares
@@ -43,8 +44,8 @@ type defaultMailbox struct {
 
 func newDefaultMailbox() Mailbox {
 	mb := &defaultMailbox{
-		userMailbox:     new(goring.Queue[*MessageEnvelope]),
-		systemMailbox:   new(mpsc.Queue[*MessageEnvelope]),
+		userMailbox:     goring.New[*MessageEnvelope](10),
+		systemMailbox:   mpsc.New[SystemMessage](),
 		dispatcher:      nil,
 		invoker:         nil,
 		schedulerStatus: 0,
@@ -69,7 +70,7 @@ func (m *defaultMailbox) PostUserMessage(message *MessageEnvelope) {
 	m.schedule()
 }
 
-func (m *defaultMailbox) PostSystemMessage(message *MessageEnvelope) {
+func (m *defaultMailbox) PostSystemMessage(message SystemMessage) {
 	m.systemMailbox.Push(message)
 	atomic.AddInt32(&m.sysMessages, 1)
 	m.schedule()
@@ -105,12 +106,13 @@ process:
 
 func (m *defaultMailbox) run() {
 	var envelope *MessageEnvelope
+	var systemMessage SystemMessage
 	var ok bool
 
 	defer func() {
 		if r := recover(); r != nil {
 			//plog.Info("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
-			//m.invoker.EscalateFailure(r, envelope)
+			m.invoker.EscalateFailure(r, envelope)
 		}
 	}()
 
@@ -124,15 +126,15 @@ func (m *defaultMailbox) run() {
 		i++
 
 		// keep processing system messages until queue is empty
-		if envelope, ok = m.systemMailbox.Pop(); envelope != nil && ok {
+		if systemMessage, ok = m.systemMailbox.Pop(); systemMessage != nil && ok {
 			atomic.AddInt32(&m.sysMessages, -1)
-			switch envelope.Message.(type) {
+			switch systemMessage {
 			//case *SuspendMailbox:
 			//	atomic.StoreInt32(&m.suspended, 1)
 			//case *ResumeMailbox:
 			//	atomic.StoreInt32(&m.suspended, 0)
 			default:
-				m.invoker.InvokeSystemMessage(envelope)
+				m.invoker.InvokeSystemMessage(systemMessage)
 			}
 			//for _, ms := range m.middlewares {
 			//	ms.MessageReceived(envelope)

@@ -20,11 +20,11 @@ func (ref *ActorProcess) SendUserMessage(_ *PID, message *MessageEnvelope) {
 	ref.mailbox.PostUserMessage(message)
 }
 
-func (ref *ActorProcess) SendSystemMessage(_ *PID, message *MessageEnvelope) {
+func (ref *ActorProcess) SendSystemMessage(_ *PID, message SystemMessage) {
 	ref.mailbox.PostSystemMessage(message)
 }
 
 func (ref *ActorProcess) Stop(pid *PID) {
 	atomic.StoreInt32(&ref.dead, 1)
-	ref.SendSystemMessage(pid, makeMessage[Stopped]())
+	ref.SendUserMessage(pid, stoppedMessage())
 }

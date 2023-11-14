@@ -41,7 +41,7 @@ func (dp *deadLetter) SendUserMessage(pid *PID, message *MessageEnvelope) {
 	})
 }
 
-func (dp *deadLetter) SendSystemMessage(pid *PID, message *MessageEnvelope) {
+func (dp *deadLetter) SendSystemMessage(pid *PID, message SystemMessage) {
 	//TODO need add metrics
 	_, msg, _ := UnwrapEnvelope(message)
 	dp.actorSystem.EventStream.Publish(&DeadLetterEvent{
@@ -52,5 +52,5 @@ func (dp *deadLetter) SendSystemMessage(pid *PID, message *MessageEnvelope) {
 }
 
 func (dp *deadLetter) Stop(pid *PID) {
-	dp.SendSystemMessage(pid, makeMessage[Stopped]())
+	dp.SendSystemMessage(pid, stopMessage)
 }

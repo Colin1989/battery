@@ -10,17 +10,20 @@ import (
 )
 
 func TestQueue_PushPop(t *testing.T) {
-	q := New()
+	q := New[int]()
 
 	q.Push(1)
 	q.Push(2)
-	assert.Equal(t, 1, q.Pop())
-	assert.Equal(t, 2, q.Pop())
+
+	v, _ := q.Pop()
+	assert.Equal(t, 1, v)
+	v, _ = q.Pop()
+	assert.Equal(t, 2, v)
 	assert.True(t, q.Empty())
 }
 
 func TestQueue_Empty(t *testing.T) {
-	q := New()
+	q := New[int]()
 	assert.True(t, q.Empty())
 	q.Push(1)
 	assert.False(t, q.Empty())
@@ -31,12 +34,12 @@ func TestQueue_PushPopOneProducer(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	q := New()
+	q := New[interface{}]()
 	go func() {
 		i := 0
 		for {
-			r := q.Pop()
-			if r == nil {
+			v, ok := q.Pop()
+			if v == nil || !ok {
 				runtime.Gosched()
 				continue
 			}
@@ -117,12 +120,12 @@ func TestQueue_PushPopOneProducer(t *testing.T) {
 func benchmarkPushPop(count, c int) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	q := New()
+	q := New[interface{}]()
 	go func() {
 		i := 0
 		for {
-			r := q.Pop()
-			if r == nil {
+			r, ok := q.Pop()
+			if r == nil || !ok {
 				runtime.Gosched()
 				continue
 			}

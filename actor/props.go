@@ -21,7 +21,7 @@ var (
 		initialize(props, ctx)
 
 		mb.RegisterHandlers(ctx, dp)
-		mb.PostSystemMessage(makeMessage[Started]())
+		mb.PostSystemMessage(startedMessage)
 		mb.Start()
 
 		return pid, nil

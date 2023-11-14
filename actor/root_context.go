@@ -107,7 +107,7 @@ func (rc *RootContext) Stop(pid *PID) {
 }
 
 func (rc *RootContext) Poison(pid *PID) {
-	pid.sendUserMessage(rc.actorSystem, makeMessage[PoisonPill]())
+	pid.sendUserMessage(rc.actorSystem, poisonPillMessage())
 }
 
 //
