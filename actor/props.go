@@ -1,7 +1,5 @@
 package actor
 
-import "errors"
-
 // Default values.
 var (
 	defaultDispatcher      = NewDefaultDispatcher(300)
@@ -14,7 +12,7 @@ var (
 		proc := NewActorProcess(mb)
 		pid, absent := actorSystem.ProcessRegistry.Add(proc, id)
 		if !absent {
-			return pid, errors.New("spawn: name exists")
+			return pid, ErrNameExists
 		}
 		ctx.self = pid
 

@@ -58,6 +58,8 @@ func (ac *actorContext) Respond(response *MessageEnvelope) {
 		ac.actorSystem.DeadLetter.SendUserMessage(nil, response)
 		return
 	}
+
+	ac.Send(ac.Sender(), response)
 }
 
 func (ac *actorContext) ReceiveTimeout() time.Duration {
@@ -159,6 +161,19 @@ func (ac *actorContext) Sender() *PID {
 
 func (ac *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
 	ac.sendUserMessage(pid, envelope)
+}
+
+func (ac *actorContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
+	// TODO: timeout 应该作为配置
+	timeout := time.Second * 5
+	future := NewFuture(ac.actorSystem, timeout)
+	envelope := &MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  future.pid,
+	}
+	ac.sendUserMessage(pid, envelope)
+	return future.Result()
 }
 
 func (ac *actorContext) Message() *MessageEnvelope {

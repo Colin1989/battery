@@ -11,6 +11,10 @@ message PID {
 message PoisonPill {
 }
 
+message DeadLetterResponse {
+  PID Target = 1;
+}
+
 message Stop {
 }
 

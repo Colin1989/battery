@@ -32,9 +32,7 @@ func main() {
 	})
 
 	pid := system.Root.Spawn(props)
-	system.Root.Send(pid, &actor.MessageEnvelope{
-		Message: &hello{Say: "World"},
-	})
+	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "World"}))
 	system.Root.Poison(pid)
 
 	eventSub := system.EventStream.Subscribe(func(msg actor.EventMessage) {
@@ -47,9 +45,7 @@ func main() {
 	defer func() {
 		system.EventStream.Unsubscribe(eventSub)
 	}()
-	system.Root.Send(pid, &actor.MessageEnvelope{
-		Message: &hello{Say: "Poison"},
-	})
+	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "Poison"}))
 
 	time.Sleep(time.Second * 5)
 }

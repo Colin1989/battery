@@ -60,7 +60,7 @@ type basePart interface {
 
 	// Respond sends a response to the current `Sender`
 	// If the Sender is nil, the actor will panic
-	Respond(response *MessageEnvelope)
+	Respond(envelope *MessageEnvelope)
 }
 
 type messagePart interface {
@@ -77,6 +77,9 @@ type senderPart interface {
 
 	// Send sends a message to the given PID
 	Send(pid *PID, envelope *MessageEnvelope)
+
+	// Request sends a message to a given PID and returns a Future
+	Request(pid *PID, message interface{}) (*MessageEnvelope, error)
 }
 
 type receiverPart interface {

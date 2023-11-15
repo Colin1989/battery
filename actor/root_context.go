@@ -1,5 +1,7 @@
 package actor
 
+import "time"
+
 type RootContext struct {
 	actorSystem *ActorSystem
 	//senderMiddleware SenderFunc
@@ -88,6 +90,20 @@ func (rc *RootContext) Send(pid *PID, envelope *MessageEnvelope) {
 	//	pid.Send(rc.actorSystem, envelope)
 	//}
 	pid.sendUserMessage(rc.actorSystem, envelope)
+}
+
+func (rc *RootContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
+	// TODO: timeout 应该作为配置
+	timeout := time.Second * 5
+	future := NewFuture(rc.actorSystem, timeout)
+	envelope := &MessageEnvelope{
+		Header:  nil,
+		Message: message,
+		Sender:  future.pid,
+	}
+	pid.sendUserMessage(rc.actorSystem, envelope)
+
+	return future.Result()
 }
 
 //
