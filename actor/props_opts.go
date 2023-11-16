@@ -11,3 +11,10 @@ func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 
 	return p
 }
+
+// PropsFromFunc creates a props with the given receive func assigned as the actor producer.
+func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
+	p := PropsFromProducer(func() Actor { return f }, opts...)
+
+	return p
+}

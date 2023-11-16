@@ -206,6 +206,9 @@ func (ref *futureProcess) Stop(pid *PID) {
 	ref.sendToPipes()
 	ref.runCompletions()
 	ref.cond.L.Unlock()
+
+	// 只能唤醒一个 goroutine
+	// ref.cond.Broadcast() 才能广播唤醒所有 goroutine
 	ref.cond.Signal()
 }
 
