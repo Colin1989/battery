@@ -188,7 +188,11 @@ func (ac *actorContext) MessageHeader() ReadonlyMessageHeader {
 }
 
 func (ac *actorContext) sendUserMessage(pid *PID, envelope *MessageEnvelope) {
-	pid.sendUserMessage(ac.actorSystem, envelope)
+	if ac.props.senderMiddlewareChain != nil {
+		ac.props.senderMiddlewareChain(ac, pid, envelope)
+	} else {
+		pid.sendUserMessage(ac.actorSystem, envelope)
+	}
 }
 
 //
@@ -236,7 +240,11 @@ func (ac *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	var pid *PID
 	var err error
 
-	pid, err = props.spawn(ac.actorSystem, ac.self.ID+"/"+name, ac)
+	if ac.props.spawnMiddlewareChain != nil {
+		pid, err = ac.props.spawnMiddlewareChain(ac.actorSystem, ac.self.ID+"/"+name, props, ac)
+	} else {
+		pid, err = props.spawn(ac.actorSystem, ac.self.ID+"/"+name, ac)
+	}
 
 	if err != nil {
 		return pid, err
@@ -330,6 +338,12 @@ func (ac *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
 }
 
 func (ac *actorContext) processMessage(envelope *MessageEnvelope) {
+	if ac.props.receiverMiddlewareChain != nil {
+		ac.props.receiverMiddlewareChain(ac, envelope)
+
+		return
+	}
+
 	ac.envelope = envelope
 	ac.defaultReceive()
 	ac.envelope = nil

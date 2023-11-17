@@ -37,13 +37,13 @@ func initialize(props *Props, ctx *actorContext) {
 }
 
 type Props struct {
-	spawner         SpawnFunc
-	producer        Producer
-	mailboxProducer MailboxProducer
-	dispatcher      Dispatcher
-	//receiverMiddleware      []ReceiverMiddleware
-	//senderMiddleware        []SenderMiddleware
-	//spawnMiddleware         []SpawnMiddleware
+	spawner                 SpawnFunc
+	producer                Producer
+	mailboxProducer         MailboxProducer
+	dispatcher              Dispatcher
+	receiverMiddleware      []ReceiverMiddleware
+	senderMiddleware        []SenderMiddleware
+	spawnMiddleware         []SpawnMiddleware
 	receiverMiddlewareChain ReceiverFunc
 	senderMiddlewareChain   SenderFunc
 	spawnMiddlewareChain    SpawnFunc

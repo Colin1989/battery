@@ -3,10 +3,10 @@ package actor
 import "time"
 
 type RootContext struct {
-	actorSystem *ActorSystem
-	//senderMiddleware SenderFunc
-	//spawnMiddleware  SpawnFunc
-	headers messageHeader
+	actorSystem      *ActorSystem
+	senderMiddleware SenderFunc
+	spawnMiddleware  SpawnFunc
+	headers          messageHeader
 }
 
 var (
@@ -22,9 +22,9 @@ func NewRootContext(actorSystem *ActorSystem, header map[string]string, middlewa
 
 	rc := &RootContext{
 		actorSystem: actorSystem,
-		//senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-		//target.sendUserMessage(actorSystem, envelope)
-		//}),
+		senderMiddleware: makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
+			target.sendUserMessage(actorSystem, envelope)
+		}),
 		headers: header,
 	}
 
@@ -41,21 +41,21 @@ func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {
 	return rc
 }
 
-//func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
-//	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
-//		target.Send(rc.actorSystem, envelope)
-//	})
-//
-//	return rc
-//}
-//
-//func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
-//	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
-//		return props.spawn(actorSystem, id, rc)
-//	})
-//
-//	return rc
-//}
+func (rc *RootContext) WithSenderMiddleware(middleware ...SenderMiddleware) *RootContext {
+	rc.senderMiddleware = makeSenderMiddlewareChain(middleware, func(_ SenderContext, target *PID, envelope *MessageEnvelope) {
+		target.sendUserMessage(rc.actorSystem, envelope)
+	})
+
+	return rc
+}
+
+func (rc *RootContext) WithSpawnMiddleware(middleware ...SpawnMiddleware) *RootContext {
+	rc.spawnMiddleware = makeSpawnMiddlewareChain(middleware, func(actorSystem *ActorSystem, id string, props *Props, parentContext SpawnerContext) (pid *PID, e error) {
+		return props.spawn(actorSystem, id, rc)
+	})
+
+	return rc
+}
 
 //
 // Interface: info
@@ -150,9 +150,9 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
 
-	//if rc.spawnMiddleware != nil {
-	//	return rc.spawnMiddleware(rc.actorSystem, name, props, rc)
-	//}
+	if rc.spawnMiddleware != nil {
+		return rc.spawnMiddleware(rc.actorSystem, name, props, rc)
+	}
 
 	return props.spawn(rc.actorSystem, name, rc)
 }
