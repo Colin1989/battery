@@ -1,7 +1,6 @@
 package actor_test
 
 import (
-	"github.com/colin1989/battery/actor/actor"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

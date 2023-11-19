@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor/actor"
+	"github.com/colin1989/battery/actor"
 	"time"
 )
 
@@ -14,7 +14,7 @@ type (
 )
 
 func (h *helloActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
 		fmt.Println("actor started")
@@ -48,4 +48,9 @@ func main() {
 	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "Poison"}))
 
 	time.Sleep(time.Second * 5)
+}
+
+type testSort struct {
+	V    int
+	time int
 }

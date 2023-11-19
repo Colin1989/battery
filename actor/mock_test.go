@@ -57,7 +57,7 @@ func (m *mockContext) Respond(envelope *MessageEnvelope) {
 	m.Called(envelope)
 }
 
-func (m *mockContext) Message() *MessageEnvelope {
+func (m *mockContext) Envelope() *MessageEnvelope {
 	args := m.Called()
 	return args.Get(0).(*MessageEnvelope)
 }

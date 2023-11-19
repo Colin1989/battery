@@ -76,7 +76,7 @@ func TestNewFuture_TimeoutNoRace(t *testing.T) {
 	//plog.SetLevel(log.OffLevel)
 	future := NewFuture(system, 1*time.Microsecond)
 	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
-		switch context.Message().Message.(type) {
+		switch context.Envelope().Message.(type) {
 		case *Started:
 			context.Send(future.PID(), WrapEnvelop(EchoResponse{}))
 		}

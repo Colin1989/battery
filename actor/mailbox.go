@@ -1,8 +1,8 @@
 package actor
 
 import (
-	"github.com/colin1989/battery/actor/queue/goring"
-	"github.com/colin1989/battery/actor/queue/mpsc"
+	"github.com/colin1989/battery/queue/goring"
+	"github.com/colin1989/battery/queue/mpsc"
 	"runtime"
 	"sync/atomic"
 )

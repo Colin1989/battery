@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor/actor"
+	"github.com/colin1989/battery/actor"
 	"sync"
 )
 
@@ -31,7 +31,7 @@ type (
 )
 
 func (a *addActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
@@ -50,7 +50,7 @@ func (a *addActor) Receive(ctx actor.Context) {
 }
 
 func (s *subActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
@@ -69,7 +69,7 @@ func (s *subActor) Receive(ctx actor.Context) {
 }
 
 func (m *mulActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
@@ -88,7 +88,7 @@ func (m *mulActor) Receive(ctx actor.Context) {
 }
 
 func (d *divActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
@@ -107,7 +107,7 @@ func (d *divActor) Receive(ctx actor.Context) {
 }
 
 func (m *mathActor) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	var result interface{}
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:

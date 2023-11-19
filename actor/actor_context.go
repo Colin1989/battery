@@ -176,7 +176,7 @@ func (ac *actorContext) Request(pid *PID, message interface{}) (*MessageEnvelope
 	return future.Result()
 }
 
-func (ac *actorContext) Message() *MessageEnvelope {
+func (ac *actorContext) Envelope() *MessageEnvelope {
 	return ac.envelope
 }
 
@@ -309,7 +309,7 @@ func (ac *actorContext) InvokeSystemMessage(message SystemMessage) {
 }
 
 func (ac *actorContext) handleRootFailure(failure *Failure) {
-	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Message)
+	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Envelope)
 	fmt.Printf("handleRootFailure ： %+v", failure)
 }
 

@@ -110,7 +110,7 @@ func (rc *RootContext) Request(pid *PID, message interface{}) (*MessageEnvelope,
 // Interface: message
 //
 
-func (rc *RootContext) Message() *MessageEnvelope {
+func (rc *RootContext) Envelope() *MessageEnvelope {
 	return nil
 }
 

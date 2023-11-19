@@ -1,4 +1,4 @@
-module github.com/colin1989/battery/actor
+module github.com/colin1989/battery
 
 go 1.20
 

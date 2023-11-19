@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor/actor"
+	"github.com/colin1989/battery/actor"
 	"sync"
 	"time"
 )
@@ -18,7 +18,7 @@ func createChildActor() actor.Actor {
 }
 
 func (c *child) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
 		fmt.Println("actor started child")
@@ -32,7 +32,7 @@ func (c *child) Receive(ctx actor.Context) {
 }
 
 func (f *foo) Receive(ctx actor.Context) {
-	envelope := ctx.Message()
+	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
 		fmt.Println("actor started")
