@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
-	"sync"
 	"time"
 )
 
 type (
-	foo                struct{}
+	parent             struct{}
 	child              struct{}
 	MessageCreateChild struct{}
 )
@@ -18,20 +17,20 @@ func createChildActor() actor.Actor {
 }
 
 func (c *child) Receive(ctx actor.Context) {
+	childCtx = ctx
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
 		fmt.Println("actor started child")
 	case *actor.Stopped:
 		fmt.Println("actor stopped child")
-		ctx.Poison(parent)
-		wg.Done()
 	default:
-		fmt.Printf("unsupported msg : %+v \n", msg)
+		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
 	}
 }
 
-func (f *foo) Receive(ctx actor.Context) {
+func (f *parent) Receive(ctx actor.Context) {
+	parentCtx = ctx
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
@@ -41,30 +40,37 @@ func (f *foo) Receive(ctx actor.Context) {
 	case *MessageCreateChild:
 		childPID = ctx.Spawn(actor.PropsFromProducer(createChildActor))
 	default:
-		fmt.Printf("unsupported msg : %+v \n", msg)
+		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
 	}
 }
 
 var (
-	parent   *actor.PID
-	childPID *actor.PID
-	wg       sync.WaitGroup
+	parentPID *actor.PID
+	parentCtx actor.Context
+	childPID  *actor.PID
+	childCtx  actor.Context
 )
 
 func main() {
-	wg.Add(1)
 	system := actor.NewActorSystem()
 	props := actor.PropsFromProducer(func() actor.Actor {
-		return &foo{}
+		return &parent{}
 	})
 
-	parent = system.Root.Spawn(props)
-	system.Root.Send(parent, actor.WrapEnvelop(&MessageCreateChild{}))
+	parentPID = system.Root.Spawn(props)
+	system.Root.Send(parentPID, actor.WrapEnvelop(&MessageCreateChild{}))
 
 	time.Sleep(time.Second * 1)
-	if childPID != nil {
-		system.Root.Poison(childPID)
+	if len(parentCtx.Children()) != 1 {
+		panic("children count is not 1")
+	}
+	if childCtx.Parent() != parentPID {
+		panic("the child parent PID is not equal parentPID")
+	}
+	system.Root.Poison(childPID)
+	time.Sleep(time.Second * 1)
+	if len(parentCtx.Children()) != 0 {
+		panic("children count is not 0")
 	}
 	time.Sleep(time.Second * 1)
-	wg.Wait()
 }

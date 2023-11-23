@@ -26,5 +26,5 @@ func (ref *ActorProcess) SendSystemMessage(_ *PID, message SystemMessage) {
 
 func (ref *ActorProcess) Stop(pid *PID) {
 	atomic.StoreInt32(&ref.dead, 1)
-	ref.SendUserMessage(pid, stoppedMessage())
+	ref.SendSystemMessage(pid, stopMessage)
 }
