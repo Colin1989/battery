@@ -278,4 +278,7 @@ func main() {
 	}
 
 	wg.Wait()
+
+	system.Root.Poison(m)
+	system.Shutdown()
 }

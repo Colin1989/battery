@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
-	"time"
 )
 
 type (
@@ -20,6 +19,8 @@ func (h *helloActor) Receive(ctx actor.Context) {
 		fmt.Println("actor started")
 	case *actor.Stopped:
 		fmt.Println("actor stopped")
+	case *actor.Stopping:
+		fmt.Println("actor stopping")
 	case *hello:
 		fmt.Printf("Hello %v\n", msg.Say)
 	}
@@ -33,6 +34,13 @@ func main() {
 
 	pid := system.Root.Spawn(props)
 	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "World"}))
+
+	for i := 0; i < 10000; i++ {
+		j := i
+		go func() {
+			system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: fmt.Sprintf("ID:%v", j)}))
+		}()
+	}
 	system.Root.Poison(pid)
 
 	eventSub := system.EventStream.Subscribe(func(msg actor.EventMessage) {
@@ -47,10 +55,5 @@ func main() {
 	}()
 	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "Poison"}))
 
-	time.Sleep(time.Second * 5)
-}
-
-type testSort struct {
-	V    int
-	time int
+	system.Shutdown()
 }

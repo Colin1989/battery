@@ -2,12 +2,13 @@ package acceptor
 
 import (
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/codec"
 	"io"
 	"net"
 )
 
-var _ Connector = (*TCPConn)(nil)
+var _ facade.Connector = (*TCPConn)(nil)
 
 type TCPConn struct {
 	net.Conn

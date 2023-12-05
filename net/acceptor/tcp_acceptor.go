@@ -4,48 +4,42 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/message"
 	"net"
 	"sync/atomic"
 )
 
 type TCPAcceptor struct {
-	addr          string
-	running       int32
-	listener      net.Listener
-	certs         []tls.Certificate
-	sessions      map[*actor.PID]net.Conn
-	agentProducer connProducer
+	addr     string
+	running  int32
+	listener net.Listener
+	certs    []tls.Certificate
+	ctx      actor.Context
 }
 
-func NewTCPAcceptor(addr string, agentProducer connProducer, certs ...string) actor.Producer {
-	return func() actor.Actor {
-		certificates := loadCertificate(certs...)
-		tcp := newTLSAcceptor(addr, certificates...)
-		tcp.agentProducer = agentProducer
-		return tcp
-	}
+func NewTCPAcceptor(addr string, certs ...string) actor.Actor {
+	certificates := loadCertificate(certs...)
+	tcp := newTLSAcceptor(addr, certificates...)
+	return tcp
 }
 
 func newTLSAcceptor(addr string, certs ...tls.Certificate) *TCPAcceptor {
 	return &TCPAcceptor{
-		addr:     addr,
-		certs:    certs,
-		sessions: map[*actor.PID]net.Conn{},
+		addr:  addr,
+		certs: certs,
 	}
-}
-
-func TCPAcceptorName() string {
-	return "tcp_acceptor"
 }
 
 func (ta *TCPAcceptor) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		ta.ListenAndServe()
+		ta.ctx = ctx
+		go ta.ListenAndServe()
 		atomic.StoreInt32(&ta.running, acceptorRunning)
 		//blog.Info("socket connector listening at Address %s", zap.String("addr", tcp.GetAddr()))
-		go ta.serve(ctx)
+	case *actor.Stopping:
 	case *actor.Stopped:
 		atomic.StoreInt32(&ta.running, acceptorStopped)
 		ta.listener.Close()
@@ -60,9 +54,11 @@ func (ta *TCPAcceptor) ListenAndServe() {
 		panic(fmt.Sprintf("failed to listen: %s", err))
 	}
 	ta.listener = listener
+
+	ta.serve()
 }
 
-func (ta *TCPAcceptor) serve(ctx actor.Context) {
+func (ta *TCPAcceptor) serve() {
 	defer func() {
 		atomic.CompareAndSwapInt32(&ta.running, acceptorRunning, acceptorStopped)
 	}()
@@ -73,10 +69,11 @@ func (ta *TCPAcceptor) serve(ctx actor.Context) {
 			continue
 		}
 
-		tcpConn := &TCPConn{
+		connector := &TCPConn{
 			Conn:       conn,
 			remoteAddr: conn.RemoteAddr(),
 		}
-		ctx.Spawn(actor.PropsFromProducer(ta.agentProducer(tcpConn)))
+		system := ta.ctx.ActorSystem()
+		ta.ctx.ActorSystem().Root.Send(system.NewLocalPID(constant.AgentManager), actor.WrapEnvelop(&message.NewAgent{Conn: connector}))
 	}
 }

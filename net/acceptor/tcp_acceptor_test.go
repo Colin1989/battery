@@ -12,54 +12,13 @@ import (
 	"time"
 )
 
-type tAgent struct {
-	conn    Connector
-	message []interface{}
-}
-
-type requestMsg struct{}
-
-func (ta *tAgent) Receive(ctx actor.Context) {
-	envelope := ctx.Envelope()
-	switch msg := envelope.Message.(type) {
-	case *actor.Started:
-		agentPid = ctx.Self()
-		fmt.Printf("tAgent started \n")
-		go ta.read(ctx)
-	case *actor.Stopped:
-		err := ta.conn.Close()
-		fmt.Printf("tAgent stopped err [%v]  \n", err)
-	case *requestMsg:
-		var resp interface{}
-		if len(ta.message) > 0 {
-			resp = ta.message[0]
-			ta.message = ta.message[1:]
-		}
-		ctx.Respond(actor.WrapEnvelop(resp))
-	default:
-		ta.message = append(ta.message, msg)
-	}
-}
-
-func (ta *tAgent) read(ctx actor.Context) {
-	for {
-		message, err := ta.conn.GetNextMessage()
-		if err != nil {
-			fmt.Printf("pid[%v] conn receive err[%v]", ctx.Self().String(), err)
-			ctx.Send(ctx.Self(), actor.WrapEnvelop(err))
-			//ctx.Poison(ctx.Self())
-			return
-		}
-		ctx.Send(ctx.Self(), actor.WrapEnvelop(message))
-	}
-}
-
 var tcpAcceptorTables = []struct {
 	name     string
 	addr     string
 	certs    []string
 	panicErr error
 }{
+
 	{"test_1", "0.0.0.0:1234", []string{"./fixtures/server.crt", "./fixtures/server.key"}, nil},
 	{"test_2", "0.0.0.0:1235", []string{}, nil},
 	{"test_3", "127.0.0.1:1236", []string{"wqd"}, constant.ErrIncorrectNumberOfCertificates},
@@ -68,9 +27,7 @@ var tcpAcceptorTables = []struct {
 }
 
 var (
-	system   = actor.NewActorSystem()
-	tcpPID   *actor.PID
-	agentPid *actor.PID
+	tcpPID *actor.PID
 )
 
 func TestNewTCPAcceptor(t *testing.T) {
@@ -78,38 +35,28 @@ func TestNewTCPAcceptor(t *testing.T) {
 		t.Run(table.name, func(t *testing.T) {
 			if table.panicErr != nil {
 				assert.PanicsWithError(t, table.panicErr.Error(), func() {
-					acceptorProducer := NewTCPAcceptor(table.addr, func(conn Connector) actor.Producer {
-						return func() actor.Actor {
-							return &tAgent{
-								conn: conn,
-							}
-						}
-					}, table.certs...)
-					system.Root.Spawn(actor.PropsFromProducer(acceptorProducer))
+					props := actor.PropsFromProducer(func() actor.Actor {
+						return NewTCPAcceptor(table.addr, table.certs...)
+					})
+					system.Root.Spawn(props)
 				})
 			} else {
 				assert.NotPanics(t, func() {
-					acceptorProducer := NewTCPAcceptor(table.addr, func(conn Connector) actor.Producer {
-						return func() actor.Actor {
-							return &tAgent{
-								conn: conn,
-							}
-						}
-					}, table.certs...)
-					tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+					props := actor.PropsFromProducer(func() actor.Actor {
+						return NewTCPAcceptor(table.addr, table.certs...)
+					})
+					tcpPID = system.Root.Spawn(props)
 				})
 				assert.NotNil(t, tcpPID)
 
-				var conn net.Conn
-				var err error
 				// should be able to connect within 100 milliseconds
 				helper.ShouldEventuallyReturn(t, func() error {
-					conn, err = net.Dial("tcp", table.addr)
+					conn, err := net.Dial("tcp", table.addr)
 					defer conn.Close()
 					return err
 				}, nil, time.Millisecond*10, time.Millisecond*100)
 				//conn := helper.ShouldEventuallyReceive(t, c, time.Millisecond*100)
-				time.Sleep(time.Millisecond * 10)
+				time.Sleep(time.Millisecond * 100)
 				assert.NotNil(t, agentPid)
 			}
 		})
@@ -129,14 +76,13 @@ func TestGetNextMessage(t *testing.T) {
 
 	for _, table := range tables {
 		t.Run(table.name, func(t *testing.T) {
-			acceptorProducer := NewTCPAcceptor(table.addr, func(conn Connector) actor.Producer {
-				return func() actor.Actor {
-					return &tAgent{
-						conn: conn,
-					}
-				}
+			assert.NotPanics(t, func() {
+				props := actor.PropsFromProducer(func() actor.Actor {
+					return NewTCPAcceptor(table.addr)
+				})
+				tcpPID = system.Root.Spawn(props)
 			})
-			tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+			assert.NotNil(t, tcpPID)
 
 			var conn net.Conn
 			var err error
@@ -164,16 +110,10 @@ func TestGetNextMessage(t *testing.T) {
 
 func TestGetNextMessageTwoMessagesInBuffer(t *testing.T) {
 	addr := "0.0.0.0:3234"
-	acceptorProducer := NewTCPAcceptor(addr, func(conn Connector) actor.Producer {
-		return func() actor.Actor {
-			return &tAgent{
-				conn: conn,
-				//err:     table.err,
-				//message: table.data,
-			}
-		}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return NewTCPAcceptor(addr)
 	})
-	tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+	tcpPID = system.Root.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -201,16 +141,10 @@ func TestGetNextMessageTwoMessagesInBuffer(t *testing.T) {
 
 func TestGetNextMessageEOF(t *testing.T) {
 	addr := "0.0.0.0:4234"
-	acceptorProducer := NewTCPAcceptor(addr, func(conn Connector) actor.Producer {
-		return func() actor.Actor {
-			return &tAgent{
-				conn: conn,
-				//err:     table.err,
-				//message: table.data,
-			}
-		}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return NewTCPAcceptor(addr)
 	})
-	tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+	tcpPID = system.Root.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -238,16 +172,10 @@ func TestGetNextMessageEOF(t *testing.T) {
 
 func TestGetNextMessageEmptyEOF(t *testing.T) {
 	addr := "0.0.0.0:5234"
-	acceptorProducer := NewTCPAcceptor(addr, func(conn Connector) actor.Producer {
-		return func() actor.Actor {
-			return &tAgent{
-				conn: conn,
-				//err:     table.err,
-				//message: table.data,
-			}
-		}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return NewTCPAcceptor(addr)
 	})
-	tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+	tcpPID = system.Root.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -271,16 +199,10 @@ func TestGetNextMessageEmptyEOF(t *testing.T) {
 
 func TestGetNextMessageInParts(t *testing.T) {
 	addr := "0.0.0.0:6234"
-	acceptorProducer := NewTCPAcceptor(addr, func(conn Connector) actor.Producer {
-		return func() actor.Actor {
-			return &tAgent{
-				conn: conn,
-				//err:     table.err,
-				//message: table.data,
-			}
-		}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return NewTCPAcceptor(addr)
 	})
-	tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+	tcpPID = system.Root.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -310,16 +232,10 @@ func TestGetNextMessageInParts(t *testing.T) {
 
 func TestTCPAcceptorCloseConn(t *testing.T) {
 	addr := "0.0.0.0:7234"
-	acceptorProducer := NewTCPAcceptor(addr, func(conn Connector) actor.Producer {
-		return func() actor.Actor {
-			return &tAgent{
-				conn: conn,
-				//err:     table.err,
-				//message: table.data,
-			}
-		}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return NewTCPAcceptor(addr)
 	})
-	tcpPID, _ = system.Root.SpawnNamed(actor.PropsFromProducer(acceptorProducer), TCPAcceptorName())
+	tcpPID = system.Root.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -329,8 +245,9 @@ func TestTCPAcceptorCloseConn(t *testing.T) {
 	}, nil, time.Millisecond*30, time.Millisecond*100)
 
 	_ = conn
-	system.Root.Poison(tcpPID)
-	//conn.Close()
+	time.Sleep(time.Second * 1)
+	//system.Root.Poison(tcpPID)
+	system.Root.Poison(agentPid)
 
 	time.Sleep(time.Second * 1)
 	request, err := system.Root.Request(agentPid, &requestMsg{})

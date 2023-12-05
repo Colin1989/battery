@@ -3,6 +3,7 @@ package actor
 import (
 	cmap "github.com/orcaman/concurrent-map"
 	murmur32 "github.com/twmb/murmur3"
+	"sync"
 	"sync/atomic"
 )
 
@@ -15,6 +16,7 @@ type ProcessRegistry struct {
 	Address     string
 	LocalPIDs   *SliceMap
 	//RemoteHandlers []AddressResolver
+	wg sync.WaitGroup
 }
 
 type SliceMap struct {
@@ -89,20 +91,27 @@ func (pr *ProcessRegistry) NextId() string {
 
 func (pr *ProcessRegistry) Add(process Process, id string) (*PID, bool) {
 	bucket := pr.LocalPIDs.GetBucket(id)
-
-	return &PID{
+	pid := &PID{
 		Address: pr.Address,
 		ID:      id,
-	}, bucket.SetIfAbsent(id, process)
+	}
+	absent := bucket.SetIfAbsent(id, process)
+
+	if absent {
+		pr.wg.Add(1)
+	}
+
+	return pid, absent
 }
 
 func (pr *ProcessRegistry) Remove(pid *PID) {
 	bucket := pr.LocalPIDs.GetBucket(pid.ID)
 
 	ref, _ := bucket.Pop(pid.ID)
-	if process, ok := ref.(ProcessActor); ok {
-		process.Dead()
+	if l, ok := ref.(*ActorProcess); ok {
+		atomic.StoreInt32(&l.dead, 1)
 	}
+	pr.wg.Done()
 }
 
 func (pr *ProcessRegistry) Get(pid *PID) (Process, bool) {
@@ -113,10 +122,14 @@ func (pr *ProcessRegistry) Get(pid *PID) (Process, bool) {
 	// TODO Get Remote Process
 
 	bucket := pr.LocalPIDs.GetBucket(pid.ID)
-	ref, ok := bucket.Pop(pid.ID)
+	ref, ok := bucket.Get(pid.ID)
 	if !ok {
 		return pr.ActorSystem.DeadLetter, false
 	}
 	p, ok := ref.(Process)
 	return p, ok
+}
+
+func (pr *ProcessRegistry) shutdown() {
+	pr.wg.Wait()
 }

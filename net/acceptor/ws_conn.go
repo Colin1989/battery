@@ -2,6 +2,7 @@ package acceptor
 
 import (
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/codec"
 	"github.com/gorilla/websocket"
 	"io"
@@ -9,7 +10,7 @@ import (
 	"time"
 )
 
-var _ Connector = (*WSConn)(nil)
+var _ facade.Connector = (*WSConn)(nil)
 
 type WSConn struct {
 	conn   *websocket.Conn

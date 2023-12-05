@@ -356,6 +356,7 @@ func (ac *actorContext) handleStop() {
 		return
 	}
 
+	fmt.Printf("actor[%v] stopping \n", ac.self)
 	atomic.StoreInt32(&ac.state, stateStopping)
 
 	ac.InvokeUserMessage(stoppingMessage())

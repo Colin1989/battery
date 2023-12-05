@@ -37,6 +37,8 @@ func (f *parent) Receive(ctx actor.Context) {
 		fmt.Println("actor started")
 	case *actor.Stopped:
 		fmt.Println("actor stopped")
+	case *actor.Stopping:
+		fmt.Println("actor stopping")
 	case *MessageCreateChild:
 		childPID = ctx.Spawn(actor.PropsFromProducer(createChildActor))
 	default:
@@ -72,5 +74,6 @@ func main() {
 	if len(parentCtx.Children()) != 0 {
 		panic("children count is not 0")
 	}
-	time.Sleep(time.Second * 1)
+	system.Root.Poison(parentPID)
+	system.Shutdown()
 }

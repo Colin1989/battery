@@ -14,11 +14,13 @@ func Errorf(format string, a ...interface{}) error {
 }
 
 var (
+	ErrProduceApplication             = Error("produce app is failed")
 	ErrProfileFilePathNil             = Error("profile file path is nil.")
 	ErrProfileNodeIdNil               = Error("NodeId is nil.")
+	ErrConnectorProducerFuncNil       = Error("connector producer func is nil")
 	ErrInvalidCertificates            = Error("invalid certificates")
 	ErrIncorrectNumberOfCertificates  = Error("certificates must be exactly two")
 	ErrReceivedMsgSmallerThanExpected = Error("received less data than expected, EOF?")
 	ErrReceivedMsgBiggerThanExpected  = Error("received more data than expected")
-	ErrConnectionClosed               = errors.New("client connection closed")
+	ErrConnectionClosed               = Error("client connection closed")
 )

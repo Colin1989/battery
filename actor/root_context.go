@@ -82,16 +82,23 @@ func (rc *RootContext) Actor() Actor {
 //
 
 func (rc *RootContext) Send(pid *PID, envelope *MessageEnvelope) {
-	//if rc.senderMiddleware != nil {
-	//	// Request based middleware
-	//	rc.senderMiddleware(rc, pid, envelope)
-	//} else {
-	//	// tell based middleware
-	//	pid.Send(rc.actorSystem, envelope)
-	//}
-	pid.sendUserMessage(rc.actorSystem, envelope)
+	if rc.senderMiddleware != nil {
+		// Request based middleware
+		rc.senderMiddleware(rc, pid, envelope)
+	} else {
+		// tell based middleware
+		pid.sendUserMessage(rc.actorSystem, envelope)
+	}
 }
 
+// Request
+//
+//	@Description:
+//	@receiver rc
+//	@param pid
+//	@param message message's type cannot be MessageEnvelope
+//	@return *MessageEnvelope
+//	@return error
 func (rc *RootContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
 	// TODO: timeout 应该作为配置
 	timeout := time.Second * 5

@@ -7,10 +7,6 @@ type Process interface {
 	Stop(pid *PID)
 }
 
-type ProcessActor interface {
-	Dead()
-}
-
 // The Producer type is a function that creates a new actor
 type Producer func() Actor
 

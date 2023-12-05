@@ -1,6 +1,8 @@
 package actor
 
-import "github.com/lithammer/shortuuid/v4"
+import (
+	"github.com/lithammer/shortuuid/v4"
+)
 
 //goland:noinspection GoNameStartsWithPackageName
 type ActorSystem struct {
@@ -30,4 +32,27 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	actorSystem.DeadLetter = newDeadLetter(actorSystem)
 
 	return actorSystem
+}
+
+func (as *ActorSystem) NewLocalPID(id string) *PID {
+	return NewPID(as.ProcessRegistry.Address, id)
+}
+
+func (as *ActorSystem) Address() string {
+	return as.ProcessRegistry.Address
+}
+
+func (as *ActorSystem) Shutdown() {
+	as.ProcessRegistry.Remove(as.DeadLetter.pid)
+	as.ProcessRegistry.shutdown()
+	close(as.stopper)
+}
+
+func (as *ActorSystem) IsStopped() bool {
+	select {
+	case <-as.stopper:
+		return true
+	default:
+		return false
+	}
 }
