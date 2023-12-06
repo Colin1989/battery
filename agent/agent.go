@@ -14,13 +14,13 @@ type pendingWrite struct {
 }
 
 type Agent struct {
-	ctx     actor.Context
-	conn    facade.Connector
-	session interface{}
-	chSend  chan pendingWrite // push message queue
-	chDie   chan struct{}     // wait for close
-	//packetDecoder codec.PacketDecoder
-	//packetEncoder codec.PacketEncoder
+	ctx           actor.Context
+	conn          facade.Connector
+	session       interface{}
+	chSend        chan pendingWrite // push message queue
+	chDie         chan struct{}     // wait for close
+	packetDecoder facade.PacketDecoder
+	packetEncoder facade.PacketEncoder
 	//serializer    serialize.Serializer
 }
 
@@ -92,7 +92,11 @@ func (a *Agent) write() {
 
 func (a *Agent) read() {
 	defer func() {
-
+		if r := recover(); r != nil {
+			logger.Error("recover agent read panic",
+				slog.String("pid", a.ctx.Self().String()),
+				slog.String("err", r.(error).Error()))
+		}
 	}()
 
 	for {
@@ -105,6 +109,20 @@ func (a *Agent) read() {
 			//ctx.Poison(ctx.Self())
 			return
 		}
-		a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(msg))
+		packets, err := a.packetDecoder.Decode(msg)
+		if err != nil {
+			logger.Error("Failed to decode message", slog.String("error", err.Error()))
+			return
+		}
+
+		if len(packets) < 1 {
+			//logger.Log.Warnf("Read no packets, data: %v", msg)
+			continue
+		}
+
+		// process all packet
+		for _, p := range packets {
+			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(p))
+		}
 	}
 }

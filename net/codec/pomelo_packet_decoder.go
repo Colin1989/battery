@@ -7,7 +7,7 @@ import (
 	"github.com/colin1989/battery/net/packet"
 )
 
-var _ facade.PackDecoder = (*PomeloPacketDecoder)(nil)
+var _ facade.PacketDecoder = (*PomeloPacketDecoder)(nil)
 
 // PomeloPacketDecoder reads and decodes network data slice following pomelo's protocol
 type PomeloPacketDecoder struct{}

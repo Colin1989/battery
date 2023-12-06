@@ -5,7 +5,7 @@ import (
 	"github.com/colin1989/battery/net/packet"
 )
 
-var _ facade.PackEncoder = (*PomeloPacketEncoder)(nil)
+var _ facade.PacketEncoder = (*PomeloPacketEncoder)(nil)
 
 type PomeloPacketEncoder struct{}
 

@@ -5,11 +5,11 @@ import (
 	"net"
 )
 
-type PackDecoder interface {
+type PacketDecoder interface {
 	Decode(data []byte) ([]*packet.Packet, error)
 }
 
-type PackEncoder interface {
+type PacketEncoder interface {
 	Encode(typ packet.Type, data []byte) ([]byte, error)
 }
 
