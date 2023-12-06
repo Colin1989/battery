@@ -1,7 +1,8 @@
 package actor
 
 import (
-	"fmt"
+	"github.com/colin1989/battery/logger"
+	"log/slog"
 	"sync/atomic"
 	"time"
 )
@@ -304,13 +305,13 @@ func (ac *actorContext) InvokeSystemMessage(message SystemMessage) {
 	case *Restart:
 		ac.handleRestart()
 	default:
-		fmt.Printf("unknown system message %v", message)
+		logger.Warn("unknown system message", slog.Any("message", message))
 	}
 }
 
 func (ac *actorContext) handleRootFailure(failure *Failure) {
 	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Envelope)
-	fmt.Printf("handleRootFailure ： %+v", failure)
+	logger.Warn("handleRootFailure", slog.Any("failure", failure))
 }
 
 func (ac *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
@@ -356,7 +357,7 @@ func (ac *actorContext) handleStop() {
 		return
 	}
 
-	fmt.Printf("actor[%v] stopping \n", ac.self)
+	logger.Warn("actor stopping", slog.String("pid", ac.self.String()))
 	atomic.StoreInt32(&ac.state, stateStopping)
 
 	ac.InvokeUserMessage(stoppingMessage())

@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/message"
 	"github.com/gorilla/websocket"
+	"log/slog"
 	"net"
 	"net/http"
+	"reflect"
 )
 
 type WSAcceptor struct {
@@ -47,7 +50,9 @@ func (wa *WSAcceptor) Receive(ctx actor.Context) {
 		wa.ctx = nil
 		wa.listener.Close()
 	default:
-		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
+		logger.Warn("actor unsupported type",
+			slog.String("type", reflect.TypeOf(msg).String()),
+			slog.Any("msg", msg))
 	}
 }
 

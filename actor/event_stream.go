@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -63,7 +62,6 @@ func (es *EventStream) Unsubscribe(sub *Subscription) {
 
 	if es.counter == 0 {
 		es.subscriptions = nil
-		fmt.Printf("sub[%v] deActivate, but the counter is zero", sub.id)
 		return
 	}
 

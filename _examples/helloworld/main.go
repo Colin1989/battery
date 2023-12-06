@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/logger"
+	"log/slog"
 )
 
 type (
@@ -16,13 +18,13 @@ func (h *helloActor) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		fmt.Println("actor started")
-	case *actor.Stopped:
-		fmt.Println("actor stopped")
+		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		fmt.Println("actor stopping")
+		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+	case *actor.Stopped:
+		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *hello:
-		fmt.Printf("Hello %v\n", msg.Say)
+		logger.Info("Hello", slog.String("say", msg.Say))
 	}
 }
 
@@ -48,7 +50,7 @@ func main() {
 		if !ok {
 			return
 		}
-		fmt.Printf("receive deadleeter : %v", dlEvent)
+		logger.Info("receive dead letter", slog.Any("event", dlEvent))
 	})
 	defer func() {
 		system.EventStream.Unsubscribe(eventSub)

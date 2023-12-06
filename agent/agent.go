@@ -1,14 +1,24 @@
 package agent
 
 import (
-	"fmt"
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/facade"
+	"github.com/colin1989/battery/logger"
+	"log/slog"
+	"reflect"
 )
 
+type pendingWrite struct {
+	data []byte
+	err  error
+}
+
 type Agent struct {
-	ctx  actor.Context
-	conn facade.Connector
+	ctx     actor.Context
+	conn    facade.Connector
+	session interface{}
+	chSend  chan pendingWrite // push message queue
+	chDie   chan struct{}     // wait for close
 	//packetDecoder codec.PacketDecoder
 	//packetEncoder codec.PacketEncoder
 	//serializer    serialize.Serializer
@@ -16,7 +26,9 @@ type Agent struct {
 
 func NewAgent(conn facade.Connector) actor.Actor {
 	return &Agent{
-		conn: conn,
+		conn:   conn,
+		chSend: make(chan pendingWrite),
+		chDie:  make(chan struct{}),
 		//packetDecoder: nil,
 		//packetEncoder: nil,
 		//serializer:    nil,
@@ -27,26 +39,72 @@ func (a *Agent) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		fmt.Println("actor started")
-		go a.read(ctx)
-	case *actor.Stopped:
-		fmt.Println("actor stopped")
+		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		a.ctx = ctx
+		a.run()
+	case *actor.Restarting:
+		logger.Debug("actor restarting", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		fmt.Println("actor stopping")
+		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+	case *actor.Stopped:
+		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		close(a.chDie)
+		a.conn.Close()
+	//case *actor.ReceiveTimeout:
+	//	ctx.Stop(ctx.Self())
 	default:
-		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
+		// TODO Router
+		logger.Warn("actor unsupported type",
+			slog.String("type", reflect.TypeOf(msg).String()),
+			slog.Any("msg", msg))
 	}
 }
 
-func (a *Agent) read(ctx actor.Context) {
+func (a *Agent) send(data []byte) (err error) {
+	return nil
+}
+
+func (a *Agent) run() {
+	go a.write()
+	go a.read()
+}
+
+func (a *Agent) write() {
+	defer func() {
+		close(a.chSend)
+	}()
+
+	for {
+		select {
+		case pWrite, ok := <-a.chSend:
+			if !ok {
+				return
+			}
+			if _, err := a.conn.Write(pWrite.data); err != nil {
+				logger.Error("Failed to write in conn", slog.String("err", err.Error()))
+				return
+			}
+		case <-a.chDie:
+			return
+		}
+	}
+}
+
+func (a *Agent) read() {
+	defer func() {
+
+	}()
+
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			fmt.Printf("pid[%v] conn receive err[%v]  \n", ctx.Self().String(), err)
-			ctx.Send(ctx.Self(), actor.WrapEnvelop(err))
+			logger.Error("conn receive error",
+				slog.String("pid", a.ctx.Self().String()),
+				slog.String("err", err.Error()))
+			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(err))
 			//ctx.Poison(ctx.Self())
 			return
 		}
-		ctx.Send(ctx.Self(), actor.WrapEnvelop(msg))
+		a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(msg))
 	}
 }

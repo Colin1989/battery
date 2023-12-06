@@ -5,6 +5,7 @@ import (
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/agent"
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/logger"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -105,10 +106,10 @@ func (app *Application) Start() {
 }
 
 func (app *Application) shutdownActorSystem() {
-	fmt.Println(fmt.Sprintf("actor system is stopping ..."))
+	logger.Info("actor system is stopping ...")
 	app.actors.ForEach(func(_ int, pid *actor.PID) {
 		app.system.Root.Poison(pid)
 	})
 	app.system.Shutdown()
-	fmt.Println(fmt.Sprintf("actor system is stopped"))
+	logger.Info("actor system is stopped")
 }

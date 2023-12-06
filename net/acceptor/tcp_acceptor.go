@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/message"
+	"log/slog"
 	"net"
+	"reflect"
 	"sync/atomic"
 )
 
@@ -44,7 +47,9 @@ func (ta *TCPAcceptor) Receive(ctx actor.Context) {
 		atomic.StoreInt32(&ta.running, acceptorStopped)
 		ta.listener.Close()
 	default:
-		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
+		logger.Warn("actor unsupported type",
+			slog.String("type", reflect.TypeOf(msg).String()),
+			slog.Any("msg", msg))
 	}
 }
 

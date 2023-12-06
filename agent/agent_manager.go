@@ -1,10 +1,12 @@
 package agent
 
 import (
-	"fmt"
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/message"
+	"log/slog"
+	"reflect"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -19,11 +21,13 @@ func (am *AgentManager) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		fmt.Println("actor started")
-	case *actor.Stopped:
-		fmt.Println("actor stopped")
+		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+	case *actor.Restarting:
+		logger.Debug("actor restarting", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		fmt.Println("actor stopping")
+		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+	case *actor.Stopped:
+		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *message.NewAgent:
 		props := actor.PropsFromProducer(func() actor.Actor {
 			return NewAgent(msg.Conn)
@@ -31,6 +35,8 @@ func (am *AgentManager) Receive(ctx actor.Context) {
 		pid := ctx.SpawnPrefix(props, constant.AgentPrefix)
 		_ = pid
 	default:
-		fmt.Printf("unsupported type %T msg : %+v \n", msg, msg)
+		logger.Warn("actor unsupported type",
+			slog.String("type", reflect.TypeOf(msg).String()),
+			slog.Any("msg", msg))
 	}
 }

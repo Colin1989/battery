@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/actor/middleware"
+	"github.com/colin1989/battery/logger"
 	"log"
+	"log/slog"
 	"math/rand"
 	"reflect"
 )
@@ -25,7 +26,7 @@ type (
 )
 
 func (c *child) Receive(ctx actor.Context) {
-	fmt.Printf("Receive [%v] \n", ctx.Envelope())
+	logger.Info("Receive", slog.Any("msg", ctx.Envelope()))
 }
 
 func createChildActor() actor.Actor {
@@ -36,17 +37,17 @@ func receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		fmt.Println("actor started")
-	case *actor.Stopped:
-		fmt.Println("actor stopped")
+		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		fmt.Println("actor stopping")
+		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+	case *actor.Stopped:
+		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *hello:
-		fmt.Printf("Hello %v\n", msg.Who)
+		logger.Info("Hello", slog.String("say", msg.Who))
 		ctx.Send(ctx.Self(), actor.WrapEnvelop(&again{}))
 		ctx.Spawn(actor.PropsFromProducer(createChildActor))
 	case *again:
-		fmt.Printf("again \n")
+		logger.Info("again")
 	}
 }
 
@@ -65,7 +66,9 @@ func (mw *middleWare1) spawnMiddleware(next actor.SpawnFunc) actor.SpawnFunc {
 	fn := func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
 		pid, err := next(actorSystem, id, props, parentContext)
 
-		log.Printf("spawnMiddleware %v spawn %v", parentContext.Self(), pid)
+		logger.Info("spawnMiddleware",
+			slog.String("parent", parentContext.Self().String()),
+			slog.String("child", pid.String()))
 
 		return pid, err
 	}
@@ -77,7 +80,7 @@ func main() {
 	system := actor.NewActorSystem()
 	mw := new(middleWare1)
 	mw.RandNum = rand.Int()
-	fmt.Printf("RandNum : [%v] \n", mw.RandNum)
+	logger.Info("RandNum", slog.Int("num", mw.RandNum))
 	rootContext := actor.NewRootContext(system, nil).WithSpawnMiddleware(mw.spawnMiddleware)
 	props := actor.PropsFromFunc(
 		receive,
