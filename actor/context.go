@@ -64,7 +64,7 @@ type basePart interface {
 }
 
 type messagePart interface {
-	// Message returns the current message to be processed
+	// Envelope returns the current message to be processed
 	Envelope() *MessageEnvelope
 
 	// MessageHeader returns the meta information for the currently processed message

@@ -55,6 +55,15 @@ func Debug(msg string, attr ...slog.Attr) {
 	defaultLogger.LogAttrs(context.Background(), level, msg, attr...)
 }
 
+func Infof(msg string, args ...interface{}) {
+	bg := context.Background()
+	level := slog.LevelInfo
+	if !defaultLogger.Enabled(bg, level) {
+		return
+	}
+	defaultLogger.Log(context.Background(), level, fmt.Sprintf(msg, args...))
+}
+
 func Info(msg string, attr ...slog.Attr) {
 	bg := context.Background()
 	level := slog.LevelInfo
@@ -83,4 +92,22 @@ func Error(msg string, attr ...slog.Attr) {
 	}
 	attr = append(attr, callerAttr())
 	defaultLogger.LogAttrs(context.Background(), level, msg, attr...)
+}
+
+func Fatal(msg string, attr ...slog.Attr) {
+	bg := context.Background()
+	level := slog.LevelError
+	if !defaultLogger.Enabled(bg, level) {
+		return
+	}
+	attr = append(attr, callerAttr())
+	defaultLogger.LogAttrs(context.Background(), level, msg, attr...)
+	os.Exit(1)
+}
+
+func CallerStack(err error, skip int) {
+	defaultLogger.LogAttrs(context.Background(),
+		slog.LevelError,
+		err.Error(),
+		slog.String("Stack", string(stack(skip+1))))
 }

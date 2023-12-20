@@ -24,3 +24,10 @@ var (
 	ErrReceivedMsgBiggerThanExpected  = Error("received more data than expected")
 	ErrConnectionClosed               = Error("client connection closed")
 )
+
+var (
+	// ErrRouteFieldCantEmpty error
+	ErrRouteFieldCantEmpty = errors.New("route field can not be empty")
+	// ErrInvalidRoute error
+	ErrInvalidRoute = errors.New("invalid route")
+)

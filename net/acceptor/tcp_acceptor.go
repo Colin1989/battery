@@ -4,9 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/logger"
-	"github.com/colin1989/battery/message"
 	"log/slog"
 	"net"
 	"reflect"
@@ -22,16 +20,11 @@ type TCPAcceptor struct {
 }
 
 func NewTCPAcceptor(addr string, certs ...string) actor.Actor {
-	certificates := loadCertificate(certs...)
-	tcp := newTLSAcceptor(addr, certificates...)
-	return tcp
-}
-
-func newTLSAcceptor(addr string, certs ...tls.Certificate) *TCPAcceptor {
-	return &TCPAcceptor{
+	tcp := &TCPAcceptor{
 		addr:  addr,
-		certs: certs,
+		certs: loadCertificate(certs...),
 	}
+	return tcp
 }
 
 func (ta *TCPAcceptor) Receive(ctx actor.Context) {
@@ -78,7 +71,6 @@ func (ta *TCPAcceptor) serve() {
 			Conn:       conn,
 			remoteAddr: conn.RemoteAddr(),
 		}
-		system := ta.ctx.ActorSystem()
-		ta.ctx.ActorSystem().Root.Send(system.NewLocalPID(constant.AgentManager), actor.WrapEnvelop(&message.NewAgent{Conn: connector}))
+		ta.ctx.ActorSystem().Root.Send(ta.ctx.Parent(), actor.WrapEnvelop(connector))
 	}
 }

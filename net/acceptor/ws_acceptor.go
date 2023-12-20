@@ -4,9 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/logger"
-	"github.com/colin1989/battery/message"
 	"github.com/gorilla/websocket"
 	"log/slog"
 	"net"
@@ -89,6 +87,5 @@ func (wa *WSAcceptor) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	}
 
 	connector := NewWSConn(conn)
-	system := wa.ctx.ActorSystem()
-	wa.ctx.ActorSystem().Root.Send(system.NewLocalPID(constant.AgentManager), actor.WrapEnvelop(&message.NewAgent{Conn: connector}))
+	wa.ctx.ActorSystem().Root.Send(wa.ctx.Parent(), actor.WrapEnvelop(connector))
 }

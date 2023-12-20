@@ -2,6 +2,9 @@ package battery
 
 import (
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/net/codec"
+	"github.com/colin1989/battery/net/message"
+	"github.com/colin1989/battery/serializer/json"
 )
 
 func NewApp(opts ...Option) *Application {
@@ -11,6 +14,11 @@ func NewApp(opts ...Option) *Application {
 		dieChan:    make(chan bool),
 		serverMode: Cluster,
 		system:     system,
+
+		messageEncoder: message.NewMessagesEncoder(true),
+		decoder:        codec.NewPomeloPacketDecoder(),
+		encoder:        codec.NewPomeloPacketEncoder(),
+		serializer:     json.NewSerializer(),
 	}
 
 	//app.AppConfig = profile.NewDefaultAppConfig()

@@ -3,9 +3,9 @@ package battery
 import (
 	"fmt"
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/agent"
-	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/logger"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync/atomic"
@@ -31,8 +31,19 @@ type Application struct {
 	dieChan    chan bool
 	serverMode ServerMode
 	//startTime  btime.Time
-	system *actor.ActorSystem
-	actors actor.PIDSet // actor was spawn by root context
+
+	messageEncoder facade.Encoder
+	decoder        facade.PacketDecoder
+	encoder        facade.PacketEncoder
+	serializer     facade.Serializer
+
+	system   *actor.ActorSystem
+	services []facade.Service
+	actors   actor.PIDSet // actor was spawn by root context
+}
+
+func (app *Application) AddService(s facade.Service) {
+	app.services = append(app.services, s)
 }
 
 func (app *Application) IsFrontend() bool {
@@ -62,8 +73,7 @@ func (app *Application) Shutdown() {
 func (app *Application) Start() {
 	defer func() {
 		if r := recover(); r != nil {
-			//blog.Error("Start recover", zap.Any("reason", r))
-			//blog.Error("Start recover", zap.Stack("recover"))
+			logger.CallerStack(r.(error), 1)
 		}
 	}()
 
@@ -71,20 +81,21 @@ func (app *Application) Start() {
 	//	blog.Flush()
 	//}()
 
-	amPID, err := app.system.Root.SpawnNamed(actor.PropsFromProducer(func() actor.Actor {
-		return agent.NewAgentManager()
-	}), constant.AgentManager)
-	if err != nil {
-		panic(err)
-	}
-	app.actors.Add(amPID)
-
 	atomic.AddInt32(&app.running, 1)
 
 	// print version info
 	fmt.Print(GetLOGO())
 
-	//app.listen()
+	for _, service := range app.services {
+		props := actor.PropsFromProducer(func() actor.Actor {
+			return service
+		})
+		pid, err := app.system.Root.SpawnNamed(props, service.Name())
+		if err != nil {
+			logger.Fatal("new service", slog.Any("service", service.Name()), logger.ErrAttr(err))
+		}
+		app.actors.Add(pid)
+	}
 
 	sg := make(chan os.Signal, 1)
 	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL)

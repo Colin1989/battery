@@ -5,7 +5,6 @@ import (
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/message"
 )
 
 var (
@@ -13,7 +12,7 @@ var (
 	props  = actor.PropsFromProducer(func() actor.Actor {
 		return &TAgentManager{agents: actor.PIDSet{}}
 	})
-	agentManagerPID, _ = system.Root.SpawnNamed(props, constant.AgentManager)
+	agentManagerPID, _ = system.Root.SpawnNamed(props, constant.Gate)
 	agentPid           *actor.PID
 )
 
@@ -81,7 +80,7 @@ func (am *TAgentManager) Receive(ctx actor.Context) {
 		fmt.Println("actor started TAgentManager")
 	case *actor.Stopped:
 		fmt.Println("actor stopped TAgentManager")
-	case *message.NewAgent:
+	case *messages.NewAgent:
 		props := actor.PropsFromProducer(func() actor.Actor {
 			return &tAgent{
 				conn:    msg.Conn,

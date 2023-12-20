@@ -12,6 +12,10 @@ var _ facade.PacketDecoder = (*PomeloPacketDecoder)(nil)
 // PomeloPacketDecoder reads and decodes network data slice following pomelo's protocol
 type PomeloPacketDecoder struct{}
 
+func NewPomeloPacketDecoder() *PomeloPacketDecoder {
+	return &PomeloPacketDecoder{}
+}
+
 func (p *PomeloPacketDecoder) forward(buf *bytes.Buffer) (packet.Type, int, error) {
 	header := buf.Next(HeadLength)
 	return ParseHeader(header)

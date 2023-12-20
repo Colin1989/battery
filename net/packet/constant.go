@@ -26,6 +26,25 @@ func IsPacketType(typ Type) error {
 	return ErrWrongPomeloPacketType
 }
 
+type (
+
+	// HandshakeClientData represents information about the client sent on the handshake.
+	HandshakeClientData struct {
+		Platform    string `json:"platform"`
+		LibVersion  string `json:"libVersion"`
+		BuildNumber string `json:"clientBuildNumber"`
+		Version     string `json:"clientVersion"`
+	}
+
+	// HandshakeData represents information about the handshake sent by the client.
+	// `sys` corresponds to information independent from the app and `user` information
+	// that depends on the app and is customized by the user.
+	HandshakeData struct {
+		Sys  HandshakeClientData    `json:"sys"`
+		User map[string]interface{} `json:"user,omitempty"`
+	}
+)
+
 var (
 	// ErrWrongPomeloPacketType represents a wrong packet type.
 	ErrWrongPomeloPacketType = errors.New("wrong packet type")

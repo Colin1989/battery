@@ -135,7 +135,7 @@ func (m *mathActor) Receive(ctx actor.Context) {
 		}
 		request, err := ctx.Request(addPID, msg)
 		if err != nil {
-			logger.Error("Request addition", slog.String("err", err.Error()))
+			logger.Error("Request addition", logger.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -147,7 +147,7 @@ func (m *mathActor) Receive(ctx actor.Context) {
 		}
 		request, err := ctx.Request(subPID, msg)
 		if err != nil {
-			logger.Error("Request subtraction", slog.String("err", err.Error()))
+			logger.Error("Request subtraction", logger.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -159,7 +159,7 @@ func (m *mathActor) Receive(ctx actor.Context) {
 		}
 		request, err := ctx.Request(mulPID, msg)
 		if err != nil {
-			logger.Error("Request multiplication", slog.String("err", err.Error()))
+			logger.Error("Request multiplication", logger.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -171,7 +171,7 @@ func (m *mathActor) Receive(ctx actor.Context) {
 		}
 		request, err := ctx.Request(divPID, msg)
 		if err != nil {
-			logger.Error("Request division", slog.String("err", err.Error()))
+			logger.Error("Request division", logger.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -194,7 +194,7 @@ func requestAddition(m *actor.PID, a, b float64) {
 	}
 	result, err := system.Root.Request(m, add)
 	if err != nil {
-		logger.Error("Request addition", slog.String("err", err.Error()))
+		logger.Error("Request addition", logger.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a+b {
@@ -213,7 +213,7 @@ func requestSubtraction(m *actor.PID, a, b float64) {
 	}
 	result, err := system.Root.Request(m, sub)
 	if err != nil {
-		logger.Error("Request subtraction", slog.String("err", err.Error()))
+		logger.Error("Request subtraction", logger.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a-b {
@@ -232,7 +232,7 @@ func requestMultiplication(m *actor.PID, a, b float64) {
 	}
 	result, err := system.Root.Request(m, mul)
 	if err != nil {
-		logger.Error("Request multiplication", slog.String("err", err.Error()))
+		logger.Error("Request multiplication", logger.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a*b {
@@ -251,7 +251,7 @@ func requestDivision(m *actor.PID, a, b float64) {
 	}
 	result, err := system.Root.Request(m, div)
 	if err != nil {
-		logger.Error("Request division", slog.String("err", err.Error()))
+		logger.Error("Request division", logger.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a/b {

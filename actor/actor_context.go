@@ -161,6 +161,7 @@ func (ac *actorContext) Sender() *PID {
 }
 
 func (ac *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
+	envelope.Sender = ac.self
 	ac.sendUserMessage(pid, envelope)
 }
 
@@ -357,7 +358,7 @@ func (ac *actorContext) handleStop() {
 		return
 	}
 
-	logger.Warn("actor stopping", slog.String("pid", ac.self.String()))
+	logger.Warn("actor handleStop", slog.String("pid", ac.self.String()))
 	atomic.StoreInt32(&ac.state, stateStopping)
 
 	ac.InvokeUserMessage(stoppingMessage())

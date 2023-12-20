@@ -1,5 +1,7 @@
 package actor
 
+import "github.com/colin1989/battery/net/message"
+
 type messageHeader map[string]string
 
 func (header messageHeader) Get(key string) string {
@@ -79,5 +81,30 @@ func WrapEnvelopWithSender(message interface{}, sender *PID) *MessageEnvelope {
 		Header:  nil,
 		Message: message,
 		Sender:  sender,
+	}
+}
+
+func WrapPushEnvelop(route string, v interface{}) *MessageEnvelope {
+	route1, _ := message.DecodeRoute(route)
+	m := message.PendingMessage{
+		Typ:     message.Push,
+		Route:   route1,
+		Payload: v,
+	}
+	return &MessageEnvelope{
+		Header:  nil,
+		Message: m,
+	}
+}
+
+func WrapResponseEnvelop(mid uint, v interface{}) *MessageEnvelope {
+	m := message.PendingMessage{
+		Typ:     message.Response,
+		Mid:     mid,
+		Payload: v,
+	}
+	return &MessageEnvelope{
+		Header:  nil,
+		Message: m,
 	}
 }
