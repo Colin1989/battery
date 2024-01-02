@@ -22,8 +22,9 @@ package message
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/constant"
 	"strings"
+
+	"github.com/colin1989/battery/errors"
 )
 
 // Route struct
@@ -49,12 +50,17 @@ func (r Route) String() string {
 	}
 }
 
+// Short transforms the route into a string without the server type
+func (r *Route) Short() string {
+	return fmt.Sprintf("%s.%s", r.Service, r.Method)
+}
+
 // DecodeRoute decodes the route
 func DecodeRoute(route string) (Route, error) {
 	r := strings.Split(route, ".")
 	for _, s := range r {
 		if strings.TrimSpace(s) == "" {
-			return Route{}, constant.ErrRouteFieldCantEmpty
+			return Route{}, errors.ErrRouteFieldCantEmpty
 		}
 	}
 	switch len(r) {
@@ -65,6 +71,6 @@ func DecodeRoute(route string) (Route, error) {
 	case 1:
 		return NewRoute("", "", r[0]), nil
 	default:
-		return Route{}, constant.ErrInvalidRoute
+		return Route{}, errors.ErrInvalidRoute
 	}
 }

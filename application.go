@@ -2,14 +2,16 @@ package battery
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"os"
 	"os/signal"
 	"sync/atomic"
 	"syscall"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/facade"
+	"github.com/colin1989/battery/logger"
+	"github.com/colin1989/battery/service"
 )
 
 // ServerMode represents a server mode
@@ -32,7 +34,7 @@ type Application struct {
 	serverMode ServerMode
 	//startTime  btime.Time
 
-	messageEncoder facade.Encoder
+	messageEncoder facade.MessageEncoder
 	decoder        facade.PacketDecoder
 	encoder        facade.PacketEncoder
 	serializer     facade.Serializer
@@ -42,7 +44,7 @@ type Application struct {
 	actors   actor.PIDSet // actor was spawn by root context
 }
 
-func (app *Application) AddService(s facade.Service) {
+func (app *Application) Register(s facade.Service) {
 	app.services = append(app.services, s)
 }
 
@@ -70,6 +72,21 @@ func (app *Application) Shutdown() {
 	}
 }
 
+func (app *Application) addService(s facade.Service) {
+	as, err := service.NewActorService(s, app)
+	if err != nil {
+		logger.Fatal("addService", logger.ErrAttr(err))
+	}
+	props := actor.PropsFromProducer(func() actor.Actor {
+		return as
+	})
+	pid, err := app.system.Root.SpawnNamed(props, s.Name())
+	if err != nil {
+		logger.Fatal("new service", slog.Any("service", s.Name()), logger.ErrAttr(err))
+	}
+	app.actors.Add(pid)
+}
+
 func (app *Application) Start() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -87,14 +104,7 @@ func (app *Application) Start() {
 	fmt.Print(GetLOGO())
 
 	for _, service := range app.services {
-		props := actor.PropsFromProducer(func() actor.Actor {
-			return service
-		})
-		pid, err := app.system.Root.SpawnNamed(props, service.Name())
-		if err != nil {
-			logger.Fatal("new service", slog.Any("service", service.Name()), logger.ErrAttr(err))
-		}
-		app.actors.Add(pid)
+		app.addService(service)
 	}
 
 	sg := make(chan os.Signal, 1)

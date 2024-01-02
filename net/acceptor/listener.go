@@ -3,8 +3,9 @@ package acceptor
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/colin1989/battery/constant"
 	"net"
+
+	"github.com/colin1989/battery/errors"
 )
 
 const (
@@ -15,11 +16,11 @@ const (
 func loadCertificate(certs ...string) []tls.Certificate {
 	var certificates []tls.Certificate
 	if len(certs) != 2 && len(certs) != 0 {
-		panic(constant.ErrIncorrectNumberOfCertificates)
+		panic(errors.ErrIncorrectNumberOfCertificates)
 	} else if len(certs) == 2 && certs[0] != "" && certs[1] != "" {
 		cert, err := tls.LoadX509KeyPair(certs[0], certs[1])
 		if err != nil {
-			panic(fmt.Errorf("%w: %v", constant.ErrInvalidCertificates, err))
+			panic(fmt.Errorf("%w: %v", errors.ErrInvalidCertificates, err))
 		}
 		certificates = append(certificates, cert)
 	}

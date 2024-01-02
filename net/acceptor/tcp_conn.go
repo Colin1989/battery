@@ -1,11 +1,12 @@
 package acceptor
 
 import (
-	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/net/codec"
 	"io"
 	"net"
+
+	"github.com/colin1989/battery/errors"
+	"github.com/colin1989/battery/facade"
+	"github.com/colin1989/battery/net/codec"
 )
 
 var _ facade.Connector = (*TCPConn)(nil)
@@ -27,7 +28,7 @@ func (tc *TCPConn) GetNextMessage() (b []byte, err error) {
 	}
 	// if the header has no data, we can consider it as a closed connection
 	if len(header) == 0 {
-		return nil, constant.ErrConnectionClosed
+		return nil, errors.ErrConnectionClosed
 	}
 	_, size, err := codec.ParseHeader(header)
 	if err != nil {
@@ -39,7 +40,7 @@ func (tc *TCPConn) GetNextMessage() (b []byte, err error) {
 		return nil, err
 	}
 	if len(data) < size {
-		return nil, constant.ErrReceivedMsgSmallerThanExpected
+		return nil, errors.ErrReceivedMsgSmallerThanExpected
 	}
 	return append(header, data...), nil
 }

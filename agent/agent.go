@@ -27,10 +27,7 @@ type Agent struct {
 	chSend chan pendingWrite // push message queue
 	chDie  chan struct{}     // wait for close
 
-	messageEncoder facade.Encoder
-	decoder        facade.PacketDecoder
-	encoder        facade.PacketEncoder
-	serializer     facade.Serializer
+	app facade.App
 
 	encodedData   []byte // session data encoded as a byte array
 	state         int32  // current agent state
@@ -38,29 +35,22 @@ type Agent struct {
 	handshakeData *packet.HandshakeData // handshake data received by the client
 }
 
-func NewAgent(conn facade.Connector,
-	messageEncoder facade.Encoder,
-	decoder facade.PacketDecoder,
-	encoder facade.PacketEncoder,
-	serializer facade.Serializer) actor.Actor {
+func NewAgent(conn facade.Connector, app facade.App) actor.Actor {
 
 	heartbeatTime := time.Minute
 	isCompressionEnabled := true
 	serializerName := "json"
 	once.Do(func() {
-		hbdEncode(heartbeatTime, encoder, isCompressionEnabled, serializerName)
-		herdEncode(heartbeatTime, encoder, isCompressionEnabled, serializerName)
+		hbdEncode(heartbeatTime, app.Encoder(), isCompressionEnabled, serializerName)
+		herdEncode(heartbeatTime, app.Encoder(), isCompressionEnabled, serializerName)
 	})
 
 	return &Agent{
-		conn:           conn,
-		chSend:         make(chan pendingWrite),
-		chDie:          make(chan struct{}),
-		messageEncoder: messageEncoder,
-		decoder:        decoder,
-		encoder:        encoder,
-		session:        &proto.Session{Data: make(map[string]string)},
-		serializer:     serializer,
+		conn:    conn,
+		chSend:  make(chan pendingWrite),
+		chDie:   make(chan struct{}),
+		app:     app,
+		session: &proto.Session{Data: make(map[string]string)},
 	}
 }
 
@@ -184,7 +174,7 @@ func (a *Agent) read() {
 			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(err))
 			return
 		}
-		packets, err := a.decoder.Decode(msg)
+		packets, err := a.app.Decoder().Decode(msg)
 		if err != nil {
 			logger.Error("Failed to decode message", slog.String("error", err.Error()))
 			return

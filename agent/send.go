@@ -17,7 +17,7 @@ func sendPacket(a *Agent, pendingMessage message.PendingMessage) {
 	//	}
 	//}
 
-	payload, _ := util.SerializeOrRaw(a.serializer, pendingMessage.Payload)
+	payload, _ := util.SerializeOrRaw(a.app.Serializer(), pendingMessage.Payload)
 	// construct message and encode
 	m := &message.Message{
 		Type:  pendingMessage.Typ,
@@ -27,13 +27,13 @@ func sendPacket(a *Agent, pendingMessage message.PendingMessage) {
 		Err:   pendingMessage.Err,
 	}
 
-	em, err := a.messageEncoder.Encode(m)
+	em, err := a.app.MessageEncoder().Encode(m)
 	if err != nil {
 		logger.Error("actor send client", slog.String("pid", a.PID()),
 			logger.ErrAttr(err))
 		return
 	}
-	p, err := a.encoder.Encode(packet.Data, em)
+	p, err := a.app.Encoder().Encode(packet.Data, em)
 	if err != nil {
 		logger.Error("actor send client", slog.String("pid", a.PID()),
 			logger.ErrAttr(err))

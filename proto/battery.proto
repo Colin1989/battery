@@ -1,5 +1,5 @@
 syntax = "proto3";
-package actor;
+
 option go_package = "github.com/colin1989/battery/proto";
 
 message Session {

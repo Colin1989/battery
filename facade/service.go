@@ -3,7 +3,6 @@ package facade
 import (
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/net/message"
 )
 
 type Acceptors struct {
@@ -15,5 +14,10 @@ type Acceptors struct {
 type Service interface {
 	actor.Actor
 	Name() string
-	ProcessMessage(actor.Context, *message.Message)
+	//OnStart(as ActorService)
 }
+
+//type ActorService interface {
+//}
+
+type ActorHandler func(actor.Context, any)

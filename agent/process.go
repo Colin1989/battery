@@ -3,12 +3,13 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
+
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/net/packet"
-	"log/slog"
 )
 
 func processPacket(a *Agent, p *packet.Packet) error {
@@ -26,7 +27,7 @@ func processPacket(a *Agent, p *packet.Packet) error {
 				return err
 			}
 
-			return fmt.Errorf("invalid handshake data. Id=%d", a.PID())
+			return fmt.Errorf("invalid handshake data. Id=%s", a.PID())
 		}
 
 		//if err := a.GetSession().ValidateHandshake(handshakeData); err != nil {

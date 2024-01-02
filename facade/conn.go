@@ -6,9 +6,8 @@ import (
 	"net"
 )
 
-// Encoder interface
-type Encoder interface {
-	IsCompressionEnabled() bool
+// MessageEncoder interface
+type MessageEncoder interface {
 	Encode(message *message.Message) ([]byte, error)
 }
 
@@ -22,12 +21,6 @@ type PacketEncoder interface {
 
 type PacketProcessor interface {
 	ProcessPacket(IAgent, *packet.Packet) error
-}
-
-type Codec interface {
-	PacketDecoder
-	PacketEncoder
-	PacketProcessor
 }
 
 type Connector interface {

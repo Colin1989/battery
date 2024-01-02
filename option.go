@@ -28,7 +28,7 @@ func WithGate(acceptors []facade.Acceptors) Option {
 	return func(app *Application) error {
 		producer := actor.PropsFromProducer(
 			func() actor.Actor {
-				return gate.NewGate(acceptors, app.messageEncoder, app.decoder, app.encoder, app.serializer)
+				return gate.NewGate(acceptors, app)
 			})
 		pid, err := app.system.Root.SpawnNamed(producer, constant.TCPAcceptor)
 		if err != nil {
@@ -39,37 +39,3 @@ func WithGate(acceptors []facade.Acceptors) Option {
 		return nil
 	}
 }
-
-//func WithTCPAcceptor(addr string, certs ...string) Option {
-//	return func(app *Application) error {
-//		producer := actor.PropsFromProducer(
-//			func() actor.Actor {
-//				return acceptor.NewTCPAcceptor(addr, certs...)
-//			})
-//		tcpPID, err := app.system.Root.SpawnNamed(producer, constant.TCPAcceptor)
-//		if err != nil {
-//			return err
-//		}
-//
-//		app.actors.Add(tcpPID)
-//
-//		return nil
-//	}
-//}
-//
-//func WithWSAcceptor(addr string, certs ...string) Option {
-//	return func(app *Application) error {
-//		producer := actor.PropsFromProducer(
-//			func() actor.Actor {
-//				return acceptor.NewWSAcceptor(addr, certs...)
-//			})
-//		wsPID, err := app.system.Root.SpawnNamed(producer, constant.WSAcceptor)
-//		if err != nil {
-//			return err
-//		}
-//
-//		app.actors.Add(wsPID)
-//
-//		return nil
-//	}
-//}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/colin1989/battery/proto";
+
+enum MsgType {
+  MsgRequest = 0;
+  MsgNotify = 1;
+  MsgResponse = 2;
+  MsgPush = 3;
+}
+
+message Error {
+  string code = 1;
+  string msg = 2;
+  map<string, string> metadata = 3;
+}

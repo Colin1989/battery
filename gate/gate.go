@@ -16,23 +16,13 @@ type Gate struct {
 	pid       *actor.PID
 	acceptors []facade.Acceptors
 
-	messageEncoder facade.Encoder
-	decoder        facade.PacketDecoder
-	encoder        facade.PacketEncoder
-	serializer     facade.Serializer
+	app facade.App
 }
 
-func NewGate(acceptors []facade.Acceptors,
-	messageEncoder facade.Encoder,
-	decoder facade.PacketDecoder,
-	encoder facade.PacketEncoder,
-	serializer facade.Serializer) *Gate {
+func NewGate(acceptors []facade.Acceptors, app facade.App) *Gate {
 	ga := &Gate{
-		acceptors:      acceptors,
-		messageEncoder: messageEncoder,
-		decoder:        decoder,
-		encoder:        encoder,
-		serializer:     serializer,
+		acceptors: acceptors,
+		app:       app,
 	}
 	return ga
 }
@@ -87,7 +77,7 @@ func (gs *Gate) Receive(ctx actor.Context) {
 	case facade.Connector:
 		conn := msg
 		props := actor.PropsFromProducer(func() actor.Actor {
-			return agent.NewAgent(conn, gs.messageEncoder, gs.decoder, gs.encoder, gs.serializer)
+			return agent.NewAgent(conn, gs.app)
 		})
 		pid := ctx.SpawnPrefix(props, constant.AgentPrefix)
 		_ = pid

@@ -1,13 +1,15 @@
 package acceptor
 
 import (
-	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/net/codec"
-	"github.com/gorilla/websocket"
 	"io"
 	"net"
 	"time"
+
+	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/errors"
+	"github.com/colin1989/battery/facade"
+	"github.com/colin1989/battery/net/codec"
+	"github.com/gorilla/websocket"
 )
 
 var _ facade.Connector = (*WSConn)(nil)
@@ -135,9 +137,9 @@ func (w *WSConn) GetNextMessage() (b []byte, err error) {
 	}
 	dataLen := len(msgBytes[codec.HeadLength:])
 	if dataLen < msgSize {
-		return nil, constant.ErrReceivedMsgSmallerThanExpected
+		return nil, errors.ErrReceivedMsgSmallerThanExpected
 	} else if dataLen > msgSize {
-		return nil, constant.ErrReceivedMsgBiggerThanExpected
+		return nil, errors.ErrReceivedMsgBiggerThanExpected
 	}
 	return msgBytes, err
 }

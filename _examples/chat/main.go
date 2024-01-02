@@ -12,7 +12,7 @@ func main() {
 	app := battery.NewApp(battery.WithGate([]facade.Acceptors{
 		{"0.0.0.0:2250", [2]string{}, constant.AcceptorTypeWS},
 	}))
-	app.AddService(&Room{})
+	app.Register(&Room{})
 
 	http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
 	go http.ListenAndServe(":2251", nil)

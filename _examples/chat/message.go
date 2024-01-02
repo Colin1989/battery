@@ -18,6 +18,8 @@ type (
 		Members []string `json:"members"`
 	}
 
+	Join struct{}
+
 	// JoinResponse represents the result of joining room
 	JoinResponse struct {
 		Code   int    `json:"code"`
