@@ -28,6 +28,9 @@ func (r *Room) Receive(ctx actor.Context) {
 		logger.Debug("room stopped", slog.String("pid", ctx.Self().String()))
 	//case *message.Message:
 	//	r.ProcessMessage(ctx, msg)
+	case *actor.Terminated:
+		r.users.Remove(msg.Who)
+		logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
 	case *actor.DeadLetterResponse:
 		r.users.Remove(msg.Target)
 		logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
@@ -65,6 +68,7 @@ func (r *Room) Join(ctx actor.Context) (*JoinResponse, error) {
 
 	r.users.Add(ctx.Sender())
 
+	ctx.Watch(ctx.Sender())
 	//_ = response
 	return response, nil
 }

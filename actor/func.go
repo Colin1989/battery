@@ -8,4 +8,6 @@ type (
 	ReceiverMiddleware func(next ReceiverFunc) ReceiverFunc
 	SenderMiddleware   func(next SenderFunc) SenderFunc
 	SpawnMiddleware    func(next SpawnFunc) SpawnFunc
+
+	ContextDecoratorFunc func(ctx Context) Context
 )

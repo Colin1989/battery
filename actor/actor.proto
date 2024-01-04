@@ -15,6 +15,16 @@ message DeadLetterResponse {
   PID Target = 1;
 }
 
+//system messages
+message Watch {
+  PID Watcher = 1;
+}
+
+message Unwatch {
+  PID Watcher = 1;
+}
+
+
 message Stop {
 }
 

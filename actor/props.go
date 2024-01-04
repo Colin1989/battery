@@ -47,6 +47,7 @@ type Props struct {
 	receiverMiddlewareChain ReceiverFunc
 	senderMiddlewareChain   SenderFunc
 	spawnMiddlewareChain    SpawnFunc
+	contextDecoratorChain   ContextDecoratorFunc
 	onInit                  []func(ctx Context)
 }
 

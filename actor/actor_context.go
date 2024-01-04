@@ -1,10 +1,11 @@
 package actor
 
 import (
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"sync/atomic"
 	"time"
+
+	"github.com/colin1989/battery/logger"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
 type actorContext struct {
 	actor               Actor
 	actorSystem         *ActorSystem
+	extras              *actorContextExtras
 	props               *Props
 	parent              *PID
 	self                *PID
@@ -24,7 +26,6 @@ type actorContext struct {
 	receiveTimeoutTimer *time.Timer
 	envelope            *MessageEnvelope
 	state               int32
-	children            PIDSet
 }
 
 var (
@@ -46,12 +47,29 @@ func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actor
 	return ac
 }
 
+func (ac *actorContext) ensureExtras() *actorContextExtras {
+	if ac.extras == nil {
+		ctxd := Context(ac)
+		if ac.props != nil && ac.props.contextDecoratorChain != nil {
+			ctxd = ac.props.contextDecoratorChain(ctxd)
+		}
+
+		ac.extras = newActorContextExtras(ctxd)
+	}
+
+	return ac.extras
+}
+
 //
 // Interface: basePart
 //
 
 func (ac *actorContext) Children() []*PID {
-	return ac.children.Values()
+	if ac.extras == nil {
+		return make([]*PID, 0)
+	}
+
+	return ac.extras.Children()
 }
 
 func (ac *actorContext) Respond(response *MessageEnvelope) {
@@ -61,6 +79,22 @@ func (ac *actorContext) Respond(response *MessageEnvelope) {
 	}
 
 	ac.Send(ac.Sender(), response)
+}
+
+func (ac *actorContext) Stash() {
+	ac.ensureExtras().stash(ac.Message())
+}
+
+func (ac *actorContext) Watch(who *PID) {
+	who.sendSystemMessage(ac.actorSystem, &Watch{
+		Watcher: ac.self,
+	})
+}
+
+func (ac *actorContext) Unwatch(who *PID) {
+	who.sendSystemMessage(ac.actorSystem, &Unwatch{
+		Watcher: ac.self,
+	})
 }
 
 func (ac *actorContext) ReceiveTimeout() time.Duration {
@@ -80,57 +114,35 @@ func (ac *actorContext) SetReceiveTimeout(d time.Duration) {
 		return
 	}
 
-	ac.stopReceiveTimeoutTimer()
-
 	ac.receiveTimeout = d
-	if ac.receiveTimeoutTimer == nil {
-		ac.initReceiveTimeoutTimer(time.AfterFunc(d, ac.receiveTimeoutHandler))
-	} else {
-		ac.resetReceiveTimeoutTimer(d)
+
+	ac.ensureExtras()
+	ac.extras.stopReceiveTimeoutTimer()
+
+	if d > 0 {
+		if ac.extras.receiveTimeoutTimer == nil {
+			ac.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ac.receiveTimeoutHandler))
+		} else {
+			ac.extras.resetReceiveTimeoutTimer(d)
+		}
 	}
 }
 
 func (ac *actorContext) CancelReceiveTimeout() {
-	if ac.receiveTimeoutTimer == nil {
+	if ac.extras == nil || ac.extras.receiveTimeoutTimer == nil {
 		return
 	}
 
-	ac.killReceiveTimeoutTimer()
+	ac.extras.killReceiveTimeoutTimer()
 	ac.receiveTimeout = 0
 }
 
-func (ac *actorContext) initReceiveTimeoutTimer(timer *time.Timer) {
-	ac.receiveTimeoutTimer = timer
-}
-
-func (ac *actorContext) resetReceiveTimeoutTimer(time time.Duration) {
-	if ac.receiveTimeoutTimer == nil {
-		return
-	}
-
-	ac.receiveTimeoutTimer.Reset(time)
-}
-
 func (ac *actorContext) receiveTimeoutHandler() {
-	ac.CancelReceiveTimeout()
-	ac.self.sendSystemMessage(ac.actorSystem, receiveTimeoutMessage)
-}
-
-func (ac *actorContext) stopReceiveTimeoutTimer() {
-	if ac.receiveTimeoutTimer == nil {
-		return
+	if ac.extras != nil && ac.extras.receiveTimeoutTimer != nil {
+		ac.CancelReceiveTimeout()
+		//ac.Send(ac.self, receiveTimeoutMessage())
+		ac.self.sendSystemMessage(ac.actorSystem, receiveTimeoutMessage)
 	}
-
-	ac.receiveTimeoutTimer.Stop()
-}
-
-func (ac *actorContext) killReceiveTimeoutTimer() {
-	if ac.receiveTimeoutTimer == nil {
-		return
-	}
-
-	ac.receiveTimeoutTimer.Stop()
-	ac.receiveTimeoutTimer = nil
 }
 
 //
@@ -197,6 +209,10 @@ func (ac *actorContext) sendUserMessage(pid *PID, envelope *MessageEnvelope) {
 	}
 }
 
+func (ac *actorContext) Message() interface{} {
+	return UnwrapEnvelopeMessage(ac.envelope)
+}
+
 //
 // Interface: ReceiverContext
 //
@@ -252,7 +268,7 @@ func (ac *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 		return pid, err
 	}
 
-	ac.children.Add(pid)
+	ac.ensureExtras().addChild(pid)
 
 	return pid, err
 }
@@ -296,13 +312,17 @@ func (ac *actorContext) EscalateFailure(reason interface{}, message interface{})
 }
 
 func (ac *actorContext) InvokeSystemMessage(message SystemMessage) {
-	switch message.(type) {
+	switch msg := message.(type) {
 	case *Started:
 		ac.InvokeUserMessage(startedMessageEnvelope())
+	case *Watch:
+		ac.handleWatch(msg)
+	case *Unwatch:
+		ac.handleUnwatch(msg)
 	case *Stop:
 		ac.handleStop()
 	case *Terminated:
-		ac.handleTerminated(message)
+		ac.handleTerminated(msg)
 	case *Restart:
 		ac.handleRestart()
 	default:
@@ -328,14 +348,14 @@ func (ac *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
 		influenceTimeout = !influenceTimeout
 
 		if influenceTimeout {
-			ac.stopReceiveTimeoutTimer()
+			ac.extras.stopReceiveTimeoutTimer()
 		}
 	}
 
 	ac.processMessage(envelope)
 
 	if ac.receiveTimeout > 0 && influenceTimeout {
-		ac.resetReceiveTimeoutTimer(ac.receiveTimeout)
+		ac.extras.resetReceiveTimeoutTimer(ac.receiveTimeout)
 	}
 }
 
@@ -366,12 +386,30 @@ func (ac *actorContext) handleStop() {
 	ac.tryRestartOrTerminate()
 }
 
-// child stopped, check if we can stop or restart (if needed).
-func (ac *actorContext) handleTerminated(message SystemMessage) {
-	terminated, _ := message.(*Terminated)
-	ac.children.Remove(terminated.Who)
+func (ac *actorContext) handleWatch(msg *Watch) {
+	if atomic.LoadInt32(&ac.state) >= stateStopping {
+		msg.Watcher.sendSystemMessage(ac.actorSystem, &Terminated{
+			Who: ac.self,
+		})
+	} else {
+		ac.ensureExtras().watch(msg.Watcher)
+	}
+}
 
-	//ac.InvokeUserMessage(message)
+func (ac *actorContext) handleUnwatch(msg *Unwatch) {
+	if ac.extras == nil {
+		return
+	}
+
+	ac.extras.unwatch(msg.Watcher)
+}
+
+// child stopped, check if we can stop or restart (if needed).
+func (ac *actorContext) handleTerminated(terminated *Terminated) {
+	if ac.extras != nil {
+		ac.extras.removeChild(terminated.Who)
+	}
+	ac.InvokeUserMessage(WrapEnvelop(terminated))
 	ac.tryRestartOrTerminate()
 }
 
@@ -383,14 +421,18 @@ func (ac *actorContext) handleRestart() {
 }
 
 func (ac *actorContext) stopAllChildren() {
+	if ac.extras == nil {
+		return
+	}
 
-	ac.children.ForEach(func(_ int, pid *PID) {
-		ac.Stop(pid)
-	})
+	pids := ac.extras.Children()
+	for i := len(pids) - 1; i >= 0; i-- {
+		pids[i].sendSystemMessage(ac.actorSystem, stopMessage)
+	}
 }
 
 func (ac *actorContext) tryRestartOrTerminate() {
-	if !ac.children.Empty() {
+	if ac.extras != nil && !ac.extras.children.Empty() {
 		return
 	}
 
@@ -409,12 +451,13 @@ func (ac *actorContext) restart() {
 	ac.self.sendSystemMessage(ac.actorSystem, resumeMailboxMessage)
 	ac.InvokeUserMessage(startedMessageEnvelope())
 
-	//if ctx.extras != nil && ctx.extras.stash != nil {
-	//	for !ctx.extras.stash.Empty() {
-	//		msg, _ := ctx.extras.stash.Pop()
-	//		ctx.InvokeUserMessage(msg)
-	//	}
-	//}
+	for {
+		msg, ok := ac.extras.popStash()
+		if !ok {
+			break
+		}
+		ac.InvokeUserMessage(WrapEnvelop(msg))
+	}
 }
 
 func (ac *actorContext) finalizeStop() {
@@ -422,12 +465,12 @@ func (ac *actorContext) finalizeStop() {
 	ac.InvokeUserMessage(stoppedMessage())
 
 	otherStopped := &Terminated{Who: ac.self}
-	//// Notify watchers
-	//if ctx.extras != nil {
-	//	ctx.extras.watchers.ForEach(func(i int, pid *PID) {
-	//		pid.sendSystemMessage(ctx.actorSystem, otherStopped)
-	//	})
-	//}
+	// Notify watchers
+	if ac.extras != nil {
+		ac.extras.watchers.ForEach(func(i int, pid *PID) {
+			pid.sendSystemMessage(ac.actorSystem, otherStopped)
+		})
+	}
 	// Notify parent
 	if ac.parent != nil {
 		ac.parent.sendSystemMessage(ac.actorSystem, otherStopped)

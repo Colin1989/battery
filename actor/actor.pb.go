@@ -213,6 +213,101 @@ func (x *DeadLetterResponse) GetTarget() *PID {
 	return nil
 }
 
+// system messages
+type Watch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Watcher *PID `protobuf:"bytes,1,opt,name=Watcher,proto3" json:"Watcher,omitempty"`
+}
+
+func (x *Watch) Reset() {
+	*x = Watch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actor_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Watch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Watch) ProtoMessage() {}
+
+func (x *Watch) ProtoReflect() protoreflect.Message {
+	mi := &file_actor_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Watch.ProtoReflect.Descriptor instead.
+func (*Watch) Descriptor() ([]byte, []int) {
+	return file_actor_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Watch) GetWatcher() *PID {
+	if x != nil {
+		return x.Watcher
+	}
+	return nil
+}
+
+type Unwatch struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Watcher *PID `protobuf:"bytes,1,opt,name=Watcher,proto3" json:"Watcher,omitempty"`
+}
+
+func (x *Unwatch) Reset() {
+	*x = Unwatch{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_actor_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Unwatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Unwatch) ProtoMessage() {}
+
+func (x *Unwatch) ProtoReflect() protoreflect.Message {
+	mi := &file_actor_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Unwatch.ProtoReflect.Descriptor instead.
+func (*Unwatch) Descriptor() ([]byte, []int) {
+	return file_actor_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Unwatch) GetWatcher() *PID {
+	if x != nil {
+		return x.Watcher
+	}
+	return nil
+}
+
 type Stop struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -222,7 +317,7 @@ type Stop struct {
 func (x *Stop) Reset() {
 	*x = Stop{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_actor_proto_msgTypes[3]
+		mi := &file_actor_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -235,7 +330,7 @@ func (x *Stop) String() string {
 func (*Stop) ProtoMessage() {}
 
 func (x *Stop) ProtoReflect() protoreflect.Message {
-	mi := &file_actor_proto_msgTypes[3]
+	mi := &file_actor_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +343,7 @@ func (x *Stop) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Stop.ProtoReflect.Descriptor instead.
 func (*Stop) Descriptor() ([]byte, []int) {
-	return file_actor_proto_rawDescGZIP(), []int{3}
+	return file_actor_proto_rawDescGZIP(), []int{5}
 }
 
 type Terminated struct {
@@ -263,7 +358,7 @@ type Terminated struct {
 func (x *Terminated) Reset() {
 	*x = Terminated{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_actor_proto_msgTypes[4]
+		mi := &file_actor_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -276,7 +371,7 @@ func (x *Terminated) String() string {
 func (*Terminated) ProtoMessage() {}
 
 func (x *Terminated) ProtoReflect() protoreflect.Message {
-	mi := &file_actor_proto_msgTypes[4]
+	mi := &file_actor_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +384,7 @@ func (x *Terminated) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Terminated.ProtoReflect.Descriptor instead.
 func (*Terminated) Descriptor() ([]byte, []int) {
-	return file_actor_proto_rawDescGZIP(), []int{4}
+	return file_actor_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Terminated) GetWho() *PID {
@@ -317,7 +412,13 @@ var file_actor_proto_rawDesc = []byte{
 	0x69, 0x6c, 0x6c, 0x22, 0x38, 0x0a, 0x12, 0x44, 0x65, 0x61, 0x64, 0x4c, 0x65, 0x74, 0x74, 0x65,
 	0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x22, 0x0a, 0x06, 0x54, 0x61, 0x72,
 	0x67, 0x65, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61, 0x63, 0x74, 0x6f,
-	0x72, 0x2e, 0x50, 0x49, 0x44, 0x52, 0x06, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x22, 0x06, 0x0a,
+	0x72, 0x2e, 0x50, 0x49, 0x44, 0x52, 0x06, 0x54, 0x61, 0x72, 0x67, 0x65, 0x74, 0x22, 0x2d, 0x0a,
+	0x05, 0x57, 0x61, 0x74, 0x63, 0x68, 0x12, 0x24, 0x0a, 0x07, 0x57, 0x61, 0x74, 0x63, 0x68, 0x65,
+	0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x2e,
+	0x50, 0x49, 0x44, 0x52, 0x07, 0x57, 0x61, 0x74, 0x63, 0x68, 0x65, 0x72, 0x22, 0x2f, 0x0a, 0x07,
+	0x55, 0x6e, 0x77, 0x61, 0x74, 0x63, 0x68, 0x12, 0x24, 0x0a, 0x07, 0x57, 0x61, 0x74, 0x63, 0x68,
+	0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0a, 0x2e, 0x61, 0x63, 0x74, 0x6f, 0x72,
+	0x2e, 0x50, 0x49, 0x44, 0x52, 0x07, 0x57, 0x61, 0x74, 0x63, 0x68, 0x65, 0x72, 0x22, 0x06, 0x0a,
 	0x04, 0x53, 0x74, 0x6f, 0x70, 0x22, 0x55, 0x0a, 0x0a, 0x54, 0x65, 0x72, 0x6d, 0x69, 0x6e, 0x61,
 	0x74, 0x65, 0x64, 0x12, 0x1c, 0x0a, 0x03, 0x77, 0x68, 0x6f, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
 	0x32, 0x0a, 0x2e, 0x61, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x50, 0x49, 0x44, 0x52, 0x03, 0x77, 0x68,
@@ -346,24 +447,28 @@ func file_actor_proto_rawDescGZIP() []byte {
 }
 
 var file_actor_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_actor_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_actor_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_actor_proto_goTypes = []interface{}{
 	(TerminatedReason)(0),      // 0: actor.TerminatedReason
 	(*PID)(nil),                // 1: actor.PID
 	(*PoisonPill)(nil),         // 2: actor.PoisonPill
 	(*DeadLetterResponse)(nil), // 3: actor.DeadLetterResponse
-	(*Stop)(nil),               // 4: actor.Stop
-	(*Terminated)(nil),         // 5: actor.Terminated
+	(*Watch)(nil),              // 4: actor.Watch
+	(*Unwatch)(nil),            // 5: actor.Unwatch
+	(*Stop)(nil),               // 6: actor.Stop
+	(*Terminated)(nil),         // 7: actor.Terminated
 }
 var file_actor_proto_depIdxs = []int32{
 	1, // 0: actor.DeadLetterResponse.Target:type_name -> actor.PID
-	1, // 1: actor.Terminated.who:type_name -> actor.PID
-	0, // 2: actor.Terminated.Why:type_name -> actor.TerminatedReason
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 1: actor.Watch.Watcher:type_name -> actor.PID
+	1, // 2: actor.Unwatch.Watcher:type_name -> actor.PID
+	1, // 3: actor.Terminated.who:type_name -> actor.PID
+	0, // 4: actor.Terminated.Why:type_name -> actor.TerminatedReason
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_actor_proto_init() }
@@ -409,7 +514,7 @@ func file_actor_proto_init() {
 			}
 		}
 		file_actor_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Stop); i {
+			switch v := v.(*Watch); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -421,6 +526,30 @@ func file_actor_proto_init() {
 			}
 		}
 		file_actor_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Unwatch); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_actor_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Stop); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_actor_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Terminated); i {
 			case 0:
 				return &v.state
@@ -439,7 +568,7 @@ func file_actor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_actor_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

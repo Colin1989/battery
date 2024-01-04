@@ -61,6 +61,15 @@ type basePart interface {
 	// Respond sends a response to the current `Sender`
 	// If the Sender is nil, the actor will panic
 	Respond(envelope *MessageEnvelope)
+
+	// Stash stashes the current message on a stack for reprocessing when the actor restarts
+	Stash()
+
+	// Watch registers the actor as a monitor for the specified PID
+	Watch(pid *PID)
+
+	// Unwatch unregisters the actor as a monitor for the specified PID
+	Unwatch(pid *PID)
 }
 
 type messagePart interface {

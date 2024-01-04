@@ -108,3 +108,10 @@ func WrapResponseEnvelop(mid uint, v interface{}) *MessageEnvelope {
 		Message: m,
 	}
 }
+
+func UnwrapEnvelopeMessage(message interface{}) interface{} {
+	if env, ok := message.(*MessageEnvelope); ok {
+		return env.Message
+	}
+	return message
+}
