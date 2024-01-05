@@ -59,3 +59,7 @@ func (as *ActorSystem) IsStopped() bool {
 		return false
 	}
 }
+
+func (as *ActorSystem) Logger() *slog.Logger {
+	return as.logger
+}

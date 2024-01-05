@@ -1,6 +1,9 @@
 package actor
 
-import "time"
+import (
+	"log/slog"
+	"time"
+)
 
 type RootContext struct {
 	actorSystem      *ActorSystem
@@ -33,6 +36,10 @@ func NewRootContext(actorSystem *ActorSystem, header map[string]string, middlewa
 
 func (rc *RootContext) ActorSystem() *ActorSystem {
 	return rc.actorSystem
+}
+
+func (rc *RootContext) Logger() *slog.Logger {
+	return rc.actorSystem.Logger()
 }
 
 func (rc *RootContext) WithHeaders(headers map[string]string) *RootContext {

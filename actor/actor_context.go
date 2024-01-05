@@ -65,7 +65,7 @@ func (ctx *actorContext) ensureExtras() *actorContextExtras {
 //
 
 func (ctx *actorContext) Logger() *slog.Logger {
-	return ctx.actorSystem.logger
+	return ctx.actorSystem.Logger()
 }
 
 func (ctx *actorContext) Children() []*PID {
@@ -315,7 +315,7 @@ func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
 
 func (ctx *actorContext) incarnateActor() {
 	atomic.StoreInt32(&ctx.state, stateAlive)
-	ctx.actor = ctx.props.producer()
+	ctx.actor = ctx.props.producer(ctx.actorSystem)
 }
 
 func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {

@@ -5,7 +5,7 @@ type PropsOption func(props *Props)
 // PropsFromProducer creates a props with the given actor producer assigned.
 func PropsFromProducer(producer Producer, opts ...PropsOption) *Props {
 	p := &Props{
-		producer: producer,
+		producer: func(*ActorSystem) Actor { return producer() },
 	}
 	p.Configure(opts...)
 

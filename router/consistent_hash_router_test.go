@@ -97,12 +97,12 @@ func TestConcurrency(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 1000; i++ {
 		pid := system.Root.Spawn(props)
-		system.Root.Send(pid, &myMessage{int32(i), rpid})
+		system.Root.Send(pid, actor.WrapEnvelop(&myMessage{int32(i), rpid}))
 	}
 
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
 	pid := system.Root.Spawn(props)
-	system.Root.Send(pid, &getRoutees{rpid})
+	system.Root.Send(pid, actor.WrapEnvelop(&getRoutees{rpid}))
 
 	// Implementing the timeout
 	timeout := time.After(5 * time.Second)
