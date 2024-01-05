@@ -2,6 +2,7 @@ package actor
 
 import (
 	"github.com/lithammer/shortuuid/v4"
+	"log/slog"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -11,6 +12,7 @@ type ActorSystem struct {
 	EventStream     *EventStream
 	DeadLetter      *deadLetter
 	Config          *Config
+	logger          *slog.Logger
 
 	ID      string
 	stopper chan struct{}
@@ -30,6 +32,7 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	actorSystem.Root = NewRootContext(actorSystem, EmptyMessageHeader)
 	actorSystem.EventStream = NewEventStream()
 	actorSystem.DeadLetter = newDeadLetter(actorSystem)
+	actorSystem.logger = config.LoggerFactory(actorSystem)
 
 	return actorSystem
 }

@@ -129,8 +129,28 @@ func (rc *RootContext) Stop(pid *PID) {
 	pid.ref(rc.actorSystem).Stop(pid)
 }
 
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+func (rc *RootContext) StopFuture(pid *PID) *Future {
+	future := NewFuture(rc.actorSystem, 10*time.Second)
+
+	pid.sendSystemMessage(rc.actorSystem, &Watch{Watcher: future.pid})
+	rc.Stop(pid)
+
+	return future
+}
+
 func (rc *RootContext) Poison(pid *PID) {
-	pid.sendUserMessage(rc.actorSystem, poisonPillMessage())
+	pid.sendUserMessage(rc.actorSystem, PoisonPillMessage())
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+func (rc *RootContext) PoisonFuture(pid *PID) *Future {
+	future := NewFuture(rc.actorSystem, 10*time.Second)
+
+	pid.sendSystemMessage(rc.actorSystem, &Watch{Watcher: future.pid})
+	rc.Poison(pid)
+
+	return future
 }
 
 //

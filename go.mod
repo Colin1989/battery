@@ -11,7 +11,9 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/lithammer/shortuuid/v4 v4.0.0
+	github.com/lmittmann/tint v1.0.3
 	github.com/orcaman/concurrent-map v1.0.0
+	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
 	github.com/stretchr/testify v1.8.4
 	github.com/topfreegames/pitaya/v2 v2.9.0
 	github.com/twmb/murmur3 v1.1.8

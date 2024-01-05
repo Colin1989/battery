@@ -9,6 +9,7 @@ type Process interface {
 
 // The Producer type is a function that creates a new actor
 type Producer func() Actor
+type ProducerWithActorSystem func(system *ActorSystem) Actor
 
 // Actor is the interface that defines the Receive method.
 //

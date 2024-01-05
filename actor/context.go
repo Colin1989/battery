@@ -1,6 +1,9 @@
 package actor
 
-import "time"
+import (
+	"log/slog"
+	"time"
+)
 
 type Context interface {
 	infoPart
@@ -40,6 +43,8 @@ type infoPart interface {
 	Actor() Actor
 
 	ActorSystem() *ActorSystem
+
+	Logger() *slog.Logger
 }
 
 type basePart interface {
@@ -114,6 +119,12 @@ type stopperPart interface {
 	// Stop will stop actor immediately regardless of existing user messages in mailbox.
 	Stop(pid *PID)
 
+	// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+	StopFuture(pid *PID) *Future
+
 	// Poison will tell actor to stop after processing current user messages in mailbox.
 	Poison(pid *PID)
+
+	// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+	PoisonFuture(pid *PID) *Future
 }

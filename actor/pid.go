@@ -42,3 +42,12 @@ func (pid *PID) sendUserMessage(actorSystem *ActorSystem, envelope *MessageEnvel
 func (pid *PID) sendSystemMessage(actorSystem *ActorSystem, message SystemMessage) {
 	pid.ref(actorSystem).SendSystemMessage(pid, message)
 }
+
+//goland:noinspection GoReceiverNames.
+func (pid *PID) Equal(other *PID) bool {
+	if pid != nil && other == nil {
+		return false
+	}
+
+	return pid.ID == other.ID && pid.Address == other.Address && pid.RequestId == other.RequestId
+}

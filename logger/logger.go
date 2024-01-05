@@ -3,11 +3,12 @@ package logger
 import (
 	"context"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"log/slog"
 	"os"
 	"runtime"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
@@ -19,7 +20,7 @@ func init() {
 	defaultLogger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
 
-func NewLogger(config LogConfig) {
+func NewLogger(config LogConfig) *slog.Logger {
 	log := &lumberjack.Logger{
 		Filename:   config.LogPath,    // 日志文件的位置
 		MaxSize:    config.MaxSize,    // 文件最大尺寸（以MB为单位）
@@ -32,6 +33,7 @@ func NewLogger(config LogConfig) {
 	if len(nodeId) != 0 {
 		defaultLogger = defaultLogger.WithGroup(nodeId)
 	}
+	return defaultLogger
 }
 
 func Caller(depth int) (fileAndLine slog.Value) {

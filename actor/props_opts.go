@@ -19,6 +19,12 @@ func PropsFromFunc(f ReceiveFunc, opts ...PropsOption) *Props {
 	return p
 }
 
+func WithProducer(p Producer) PropsOption {
+	return func(props *Props) {
+		props.producer = func(*ActorSystem) Actor { return p() }
+	}
+}
+
 func WithReceiverMiddleware(middleware ...ReceiverMiddleware) PropsOption {
 	return func(props *Props) {
 		props.receiverMiddleware = append(props.receiverMiddleware, middleware...)
@@ -53,5 +59,11 @@ func WithSpawnMiddleware(middleware ...SpawnMiddleware) PropsOption {
 
 			return props.spawner(actorSystem, id, props, parentContext)
 		})
+	}
+}
+
+func WithSpawnFunc(spawn SpawnFunc) PropsOption {
+	return func(props *Props) {
+		props.spawner = spawn
 	}
 }

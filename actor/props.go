@@ -36,9 +36,12 @@ func initialize(props *Props, ctx *actorContext) {
 	}
 }
 
+// DefaultSpawner this is a hacking way to allow Proto.Router access default spawner func.
+var DefaultSpawner SpawnFunc = defaultSpawner
+
 type Props struct {
 	spawner                 SpawnFunc
-	producer                Producer
+	producer                ProducerWithActorSystem
 	mailboxProducer         MailboxProducer
 	dispatcher              Dispatcher
 	receiverMiddleware      []ReceiverMiddleware

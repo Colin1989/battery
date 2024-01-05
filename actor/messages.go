@@ -71,7 +71,7 @@ var (
 	//restartingMessage AutoReceiveMessage = &Restarting{}
 	//stoppingMessage   AutoReceiveMessage = &Stopping{}
 	//stoppedMessage    AutoReceiveMessage = &Stopped{}
-	//poisonPillMessage AutoReceiveMessage = &PoisonPill{}
+	//PoisonPillMessage AutoReceiveMessage = &PoisonPill{}
 
 	restartMessage        SystemMessage = &Restart{}
 	startedMessage        SystemMessage = &Started{}
@@ -113,7 +113,7 @@ func stoppedMessage() *MessageEnvelope {
 	}
 }
 
-func poisonPillMessage() *MessageEnvelope {
+func PoisonPillMessage() *MessageEnvelope {
 	return &MessageEnvelope{
 		Header:  nil,
 		Message: &PoisonPill{},

@@ -5,6 +5,7 @@ option go_package = "github.com/colin1989/battery/actor";
 message PID {
   string address = 1;
   string ID = 2;
+  uint32 request_id = 3;
 }
 
 //user messages

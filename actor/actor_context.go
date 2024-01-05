@@ -47,61 +47,65 @@ func newActorContext(actorSystem *ActorSystem, props *Props, parent *PID) *actor
 	return ac
 }
 
-func (ac *actorContext) ensureExtras() *actorContextExtras {
-	if ac.extras == nil {
-		ctxd := Context(ac)
-		if ac.props != nil && ac.props.contextDecoratorChain != nil {
-			ctxd = ac.props.contextDecoratorChain(ctxd)
+func (ctx *actorContext) ensureExtras() *actorContextExtras {
+	if ctx.extras == nil {
+		ctxd := Context(ctx)
+		if ctx.props != nil && ctx.props.contextDecoratorChain != nil {
+			ctxd = ctx.props.contextDecoratorChain(ctxd)
 		}
 
-		ac.extras = newActorContextExtras(ctxd)
+		ctx.extras = newActorContextExtras(ctxd)
 	}
 
-	return ac.extras
+	return ctx.extras
 }
 
 //
 // Interface: basePart
 //
 
-func (ac *actorContext) Children() []*PID {
-	if ac.extras == nil {
+func (ctx *actorContext) Logger() *slog.Logger {
+	return ctx.actorSystem.logger
+}
+
+func (ctx *actorContext) Children() []*PID {
+	if ctx.extras == nil {
 		return make([]*PID, 0)
 	}
 
-	return ac.extras.Children()
+	return ctx.extras.Children()
 }
 
-func (ac *actorContext) Respond(response *MessageEnvelope) {
-	if ac.Sender() == nil {
-		ac.actorSystem.DeadLetter.SendUserMessage(nil, response)
+func (ctx *actorContext) Respond(response *MessageEnvelope) {
+	if ctx.Sender() == nil {
+		ctx.actorSystem.DeadLetter.SendUserMessage(nil, response)
 		return
 	}
 
-	ac.Send(ac.Sender(), response)
+	ctx.Send(ctx.Sender(), response)
 }
 
-func (ac *actorContext) Stash() {
-	ac.ensureExtras().stash(ac.Message())
+func (ctx *actorContext) Stash() {
+	ctx.ensureExtras().stash(ctx.Message())
 }
 
-func (ac *actorContext) Watch(who *PID) {
-	who.sendSystemMessage(ac.actorSystem, &Watch{
-		Watcher: ac.self,
+func (ctx *actorContext) Watch(who *PID) {
+	who.sendSystemMessage(ctx.actorSystem, &Watch{
+		Watcher: ctx.self,
 	})
 }
 
-func (ac *actorContext) Unwatch(who *PID) {
-	who.sendSystemMessage(ac.actorSystem, &Unwatch{
-		Watcher: ac.self,
+func (ctx *actorContext) Unwatch(who *PID) {
+	who.sendSystemMessage(ctx.actorSystem, &Unwatch{
+		Watcher: ctx.self,
 	})
 }
 
-func (ac *actorContext) ReceiveTimeout() time.Duration {
-	return ac.receiveTimeout
+func (ctx *actorContext) ReceiveTimeout() time.Duration {
+	return ctx.receiveTimeout
 }
 
-func (ac *actorContext) SetReceiveTimeout(d time.Duration) {
+func (ctx *actorContext) SetReceiveTimeout(d time.Duration) {
 	if d <= 0 {
 		panic("Duration must be greater than zero")
 	}
@@ -110,38 +114,38 @@ func (ac *actorContext) SetReceiveTimeout(d time.Duration) {
 		d = 0
 	}
 
-	if d == ac.receiveTimeout {
+	if d == ctx.receiveTimeout {
 		return
 	}
 
-	ac.receiveTimeout = d
+	ctx.receiveTimeout = d
 
-	ac.ensureExtras()
-	ac.extras.stopReceiveTimeoutTimer()
+	ctx.ensureExtras()
+	ctx.extras.stopReceiveTimeoutTimer()
 
 	if d > 0 {
-		if ac.extras.receiveTimeoutTimer == nil {
-			ac.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ac.receiveTimeoutHandler))
+		if ctx.extras.receiveTimeoutTimer == nil {
+			ctx.extras.initReceiveTimeoutTimer(time.AfterFunc(d, ctx.receiveTimeoutHandler))
 		} else {
-			ac.extras.resetReceiveTimeoutTimer(d)
+			ctx.extras.resetReceiveTimeoutTimer(d)
 		}
 	}
 }
 
-func (ac *actorContext) CancelReceiveTimeout() {
-	if ac.extras == nil || ac.extras.receiveTimeoutTimer == nil {
+func (ctx *actorContext) CancelReceiveTimeout() {
+	if ctx.extras == nil || ctx.extras.receiveTimeoutTimer == nil {
 		return
 	}
 
-	ac.extras.killReceiveTimeoutTimer()
-	ac.receiveTimeout = 0
+	ctx.extras.killReceiveTimeoutTimer()
+	ctx.receiveTimeout = 0
 }
 
-func (ac *actorContext) receiveTimeoutHandler() {
-	if ac.extras != nil && ac.extras.receiveTimeoutTimer != nil {
-		ac.CancelReceiveTimeout()
+func (ctx *actorContext) receiveTimeoutHandler() {
+	if ctx.extras != nil && ctx.extras.receiveTimeoutTimer != nil {
+		ctx.CancelReceiveTimeout()
 		//ac.Send(ac.self, receiveTimeoutMessage())
-		ac.self.sendSystemMessage(ac.actorSystem, receiveTimeoutMessage)
+		ctx.self.sendSystemMessage(ctx.actorSystem, receiveTimeoutMessage)
 	}
 }
 
@@ -149,86 +153,86 @@ func (ac *actorContext) receiveTimeoutHandler() {
 // Interface: SenderContext
 //
 
-func (ac *actorContext) Parent() *PID {
-	return ac.parent
+func (ctx *actorContext) Parent() *PID {
+	return ctx.parent
 }
 
-func (ac *actorContext) Self() *PID {
-	return ac.self
+func (ctx *actorContext) Self() *PID {
+	return ctx.self
 }
 
-func (ac *actorContext) Actor() Actor {
-	return ac.actor
+func (ctx *actorContext) Actor() Actor {
+	return ctx.actor
 }
 
-func (ac *actorContext) ActorSystem() *ActorSystem {
-	return ac.actorSystem
+func (ctx *actorContext) ActorSystem() *ActorSystem {
+	return ctx.actorSystem
 }
 
-func (ac *actorContext) Sender() *PID {
-	if ac.envelope == nil {
+func (ctx *actorContext) Sender() *PID {
+	if ctx.envelope == nil {
 		return nil
 	}
-	return ac.envelope.Sender
+	return ctx.envelope.Sender
 }
 
-func (ac *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
-	envelope.Sender = ac.self
-	ac.sendUserMessage(pid, envelope)
+func (ctx *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
+	envelope.Sender = ctx.self
+	ctx.sendUserMessage(pid, envelope)
 }
 
-func (ac *actorContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
+func (ctx *actorContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
 	// TODO: timeout 应该作为配置
 	timeout := time.Second * 5
-	future := NewFuture(ac.actorSystem, timeout)
+	future := NewFuture(ctx.actorSystem, timeout)
 	envelope := &MessageEnvelope{
 		Header:  nil,
 		Message: message,
 		Sender:  future.pid,
 	}
-	ac.sendUserMessage(pid, envelope)
+	ctx.sendUserMessage(pid, envelope)
 	return future.Result()
 }
 
-func (ac *actorContext) Envelope() *MessageEnvelope {
-	return ac.envelope
+func (ctx *actorContext) Envelope() *MessageEnvelope {
+	return ctx.envelope
 }
 
-func (ac *actorContext) MessageHeader() ReadonlyMessageHeader {
-	if ac.envelope == nil {
+func (ctx *actorContext) MessageHeader() ReadonlyMessageHeader {
+	if ctx.envelope == nil {
 		return nil
 	}
-	return ac.envelope.Header
+	return ctx.envelope.Header
 }
 
-func (ac *actorContext) sendUserMessage(pid *PID, envelope *MessageEnvelope) {
-	if ac.props.senderMiddlewareChain != nil {
-		ac.props.senderMiddlewareChain(ac, pid, envelope)
+func (ctx *actorContext) sendUserMessage(pid *PID, envelope *MessageEnvelope) {
+	if ctx.props.senderMiddlewareChain != nil {
+		ctx.props.senderMiddlewareChain(ctx, pid, envelope)
 	} else {
-		pid.sendUserMessage(ac.actorSystem, envelope)
+		pid.sendUserMessage(ctx.actorSystem, envelope)
 	}
 }
 
-func (ac *actorContext) Message() interface{} {
-	return UnwrapEnvelopeMessage(ac.envelope)
+func (ctx *actorContext) Message() interface{} {
+	return UnwrapEnvelopeMessage(ctx.envelope)
 }
 
 //
 // Interface: ReceiverContext
 //
 
-func (ac *actorContext) Receive(envelope *MessageEnvelope) {
-	ac.envelope = envelope
-	ac.defaultReceive()
-	ac.envelope = nil
+func (ctx *actorContext) Receive(envelope *MessageEnvelope) {
+	ctx.envelope = envelope
+	ctx.defaultReceive()
+	ctx.envelope = nil
 }
 
-func (ac *actorContext) defaultReceive() {
-	switch ac.envelope.Message.(type) {
+func (ctx *actorContext) defaultReceive() {
+	switch ctx.envelope.Message.(type) {
 	case *PoisonPill:
-		ac.Stop(ac.self)
+		ctx.Stop(ctx.self)
 	default:
-		ac.actor.Receive(ac)
+		ctx.actor.Receive(ctx)
 	}
 }
 
@@ -236,8 +240,8 @@ func (ac *actorContext) defaultReceive() {
 // Interface: SpawnerContext
 //
 
-func (ac *actorContext) Spawn(props *Props) *PID {
-	pid, err := ac.SpawnNamed(props, ac.actorSystem.ProcessRegistry.NextId())
+func (ctx *actorContext) Spawn(props *Props) *PID {
+	pid, err := ctx.SpawnNamed(props, ctx.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}
@@ -245,8 +249,8 @@ func (ac *actorContext) Spawn(props *Props) *PID {
 	return pid
 }
 
-func (ac *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
-	pid, err := ac.SpawnNamed(props, prefix+ac.actorSystem.ProcessRegistry.NextId())
+func (ctx *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
+	pid, err := ctx.SpawnNamed(props, prefix+ctx.actorSystem.ProcessRegistry.NextId())
 	if err != nil {
 		panic(err)
 	}
@@ -254,21 +258,21 @@ func (ac *actorContext) SpawnPrefix(props *Props, prefix string) *PID {
 	return pid
 }
 
-func (ac *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
+func (ctx *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 	var pid *PID
 	var err error
 
-	if ac.props.spawnMiddlewareChain != nil {
-		pid, err = ac.props.spawnMiddlewareChain(ac.actorSystem, ac.self.ID+"/"+name, props, ac)
+	if ctx.props.spawnMiddlewareChain != nil {
+		pid, err = ctx.props.spawnMiddlewareChain(ctx.actorSystem, ctx.self.ID+"/"+name, props, ctx)
 	} else {
-		pid, err = props.spawn(ac.actorSystem, ac.self.ID+"/"+name, ac)
+		pid, err = props.spawn(ctx.actorSystem, ctx.self.ID+"/"+name, ctx)
 	}
 
 	if err != nil {
 		return pid, err
 	}
 
-	ac.ensureExtras().addChild(pid)
+	ctx.ensureExtras().addChild(pid)
 
 	return pid, err
 }
@@ -277,204 +281,224 @@ func (ac *actorContext) SpawnNamed(props *Props, name string) (*PID, error) {
 // Interface: stopperPart
 //
 
-func (ac *actorContext) Stop(pid *PID) {
-	pid.ref(ac.actorSystem).Stop(pid)
+func (ctx *actorContext) Stop(pid *PID) {
+	pid.ref(ctx.actorSystem).Stop(pid)
 }
 
-func (ac *actorContext) Poison(pid *PID) {
-	pid.sendUserMessage(ac.actorSystem, poisonPillMessage())
+// StopFuture will stop actor immediately regardless of existing user messages in mailbox, and return its future.
+func (ctx *actorContext) StopFuture(pid *PID) *Future {
+	future := NewFuture(ctx.actorSystem, 10*time.Second)
+
+	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
+	ctx.Stop(pid)
+
+	return future
+}
+
+func (ctx *actorContext) Poison(pid *PID) {
+	pid.sendUserMessage(ctx.actorSystem, PoisonPillMessage())
+}
+
+// PoisonFuture will tell actor to stop after processing current user messages in mailbox, and return its future.
+func (ctx *actorContext) PoisonFuture(pid *PID) *Future {
+	future := NewFuture(ctx.actorSystem, 10*time.Second)
+
+	pid.sendSystemMessage(ctx.actorSystem, &Watch{Watcher: future.pid})
+	ctx.Poison(pid)
+
+	return future
 }
 
 //
 // Interface: stopperPart
 //
 
-func (ac *actorContext) incarnateActor() {
-	atomic.StoreInt32(&ac.state, stateAlive)
-	ac.actor = ac.props.producer()
+func (ctx *actorContext) incarnateActor() {
+	atomic.StoreInt32(&ctx.state, stateAlive)
+	ctx.actor = ctx.props.producer()
 }
 
-func (ac *actorContext) EscalateFailure(reason interface{}, message interface{}) {
-	ac.self.sendSystemMessage(ac.actorSystem, suspendMailboxMessage)
+func (ctx *actorContext) EscalateFailure(reason interface{}, message interface{}) {
+	ctx.self.sendSystemMessage(ctx.actorSystem, suspendMailboxMessage)
 
 	failure := &Failure{
 		Reason: reason,
-		Who:    ac.self,
+		Who:    ctx.self,
 		//RestartStats: ctx.ensureExtras().restartStats(),
 		Message: message,
 	}
 
-	if ac.parent == nil {
-		ac.handleRootFailure(failure)
+	if ctx.parent == nil {
+		ctx.handleRootFailure(failure)
 	} else {
-		ac.parent.sendSystemMessage(ac.actorSystem, failure)
+		ctx.parent.sendSystemMessage(ctx.actorSystem, failure)
 	}
 }
 
-func (ac *actorContext) InvokeSystemMessage(message SystemMessage) {
+func (ctx *actorContext) InvokeSystemMessage(message SystemMessage) {
 	switch msg := message.(type) {
 	case *Started:
-		ac.InvokeUserMessage(startedMessageEnvelope())
+		ctx.InvokeUserMessage(startedMessageEnvelope())
 	case *Watch:
-		ac.handleWatch(msg)
+		ctx.handleWatch(msg)
 	case *Unwatch:
-		ac.handleUnwatch(msg)
+		ctx.handleUnwatch(msg)
 	case *Stop:
-		ac.handleStop()
+		ctx.handleStop()
 	case *Terminated:
-		ac.handleTerminated(msg)
+		ctx.handleTerminated(msg)
 	case *Restart:
-		ac.handleRestart()
+		ctx.handleRestart()
 	default:
 		logger.Warn("unknown system message", slog.Any("message", message))
 	}
 }
 
-func (ac *actorContext) handleRootFailure(failure *Failure) {
+func (ctx *actorContext) handleRootFailure(failure *Failure) {
 	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Envelope)
 	logger.Warn("handleRootFailure", slog.Any("failure", failure))
 }
 
-func (ac *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
-	if atomic.LoadInt32(&ac.state) == stateStopped {
+func (ctx *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
+	if atomic.LoadInt32(&ctx.state) == stateStopped {
 		return
 	}
 
 	_, msg, _ := UnwrapEnvelope(envelope)
 
 	influenceTimeout := true
-	if ac.receiveTimeout > 0 {
+	if ctx.receiveTimeout > 0 {
 		_, influenceTimeout = msg.(NotInfluenceReceiveTimeout)
 		influenceTimeout = !influenceTimeout
 
 		if influenceTimeout {
-			ac.extras.stopReceiveTimeoutTimer()
+			ctx.extras.stopReceiveTimeoutTimer()
 		}
 	}
 
-	ac.processMessage(envelope)
+	ctx.processMessage(envelope)
 
-	if ac.receiveTimeout > 0 && influenceTimeout {
-		ac.extras.resetReceiveTimeoutTimer(ac.receiveTimeout)
+	if ctx.receiveTimeout > 0 && influenceTimeout {
+		ctx.extras.resetReceiveTimeoutTimer(ctx.receiveTimeout)
 	}
 }
 
-func (ac *actorContext) processMessage(envelope *MessageEnvelope) {
-	if ac.props.receiverMiddlewareChain != nil {
-		ac.props.receiverMiddlewareChain(ac, envelope)
+func (ctx *actorContext) processMessage(envelope *MessageEnvelope) {
+	if ctx.props.receiverMiddlewareChain != nil {
+		ctx.props.receiverMiddlewareChain(ctx, envelope)
 
 		return
 	}
 
-	ac.envelope = envelope
-	ac.defaultReceive()
-	ac.envelope = nil
+	ctx.envelope = envelope
+	ctx.defaultReceive()
+	ctx.envelope = nil
 }
 
 // I am stopping.
-func (ac *actorContext) handleStop() {
-	if atomic.LoadInt32(&ac.state) >= stateStopping {
+func (ctx *actorContext) handleStop() {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
 		// already stopping or stopped
 		return
 	}
 
-	logger.Warn("actor handleStop", slog.String("pid", ac.self.String()))
-	atomic.StoreInt32(&ac.state, stateStopping)
+	logger.Warn("actor handleStop", slog.String("pid", ctx.self.String()))
+	atomic.StoreInt32(&ctx.state, stateStopping)
 
-	ac.InvokeUserMessage(stoppingMessage())
-	ac.stopAllChildren()
-	ac.tryRestartOrTerminate()
+	ctx.InvokeUserMessage(stoppingMessage())
+	ctx.stopAllChildren()
+	ctx.tryRestartOrTerminate()
 }
 
-func (ac *actorContext) handleWatch(msg *Watch) {
-	if atomic.LoadInt32(&ac.state) >= stateStopping {
-		msg.Watcher.sendSystemMessage(ac.actorSystem, &Terminated{
-			Who: ac.self,
+func (ctx *actorContext) handleWatch(msg *Watch) {
+	if atomic.LoadInt32(&ctx.state) >= stateStopping {
+		msg.Watcher.sendSystemMessage(ctx.actorSystem, &Terminated{
+			Who: ctx.self,
 		})
 	} else {
-		ac.ensureExtras().watch(msg.Watcher)
+		ctx.ensureExtras().watch(msg.Watcher)
 	}
 }
 
-func (ac *actorContext) handleUnwatch(msg *Unwatch) {
-	if ac.extras == nil {
+func (ctx *actorContext) handleUnwatch(msg *Unwatch) {
+	if ctx.extras == nil {
 		return
 	}
 
-	ac.extras.unwatch(msg.Watcher)
+	ctx.extras.unwatch(msg.Watcher)
 }
 
 // child stopped, check if we can stop or restart (if needed).
-func (ac *actorContext) handleTerminated(terminated *Terminated) {
-	if ac.extras != nil {
-		ac.extras.removeChild(terminated.Who)
+func (ctx *actorContext) handleTerminated(terminated *Terminated) {
+	if ctx.extras != nil {
+		ctx.extras.removeChild(terminated.Who)
 	}
-	ac.InvokeUserMessage(WrapEnvelop(terminated))
-	ac.tryRestartOrTerminate()
+	ctx.InvokeUserMessage(WrapEnvelop(terminated))
+	ctx.tryRestartOrTerminate()
 }
 
-func (ac *actorContext) handleRestart() {
-	atomic.StoreInt32(&ac.state, stateRestarting)
-	ac.InvokeUserMessage(restartingMessage())
-	ac.stopAllChildren()
-	ac.tryRestartOrTerminate()
+func (ctx *actorContext) handleRestart() {
+	atomic.StoreInt32(&ctx.state, stateRestarting)
+	ctx.InvokeUserMessage(restartingMessage())
+	ctx.stopAllChildren()
+	ctx.tryRestartOrTerminate()
 }
 
-func (ac *actorContext) stopAllChildren() {
-	if ac.extras == nil {
+func (ctx *actorContext) stopAllChildren() {
+	if ctx.extras == nil {
 		return
 	}
 
-	pids := ac.extras.Children()
+	pids := ctx.extras.Children()
 	for i := len(pids) - 1; i >= 0; i-- {
-		pids[i].sendSystemMessage(ac.actorSystem, stopMessage)
+		pids[i].sendSystemMessage(ctx.actorSystem, stopMessage)
 	}
 }
 
-func (ac *actorContext) tryRestartOrTerminate() {
-	if ac.extras != nil && !ac.extras.children.Empty() {
+func (ctx *actorContext) tryRestartOrTerminate() {
+	if ctx.extras != nil && !ctx.extras.children.Empty() {
 		return
 	}
 
-	switch atomic.LoadInt32(&ac.state) {
+	switch atomic.LoadInt32(&ctx.state) {
 	case stateRestarting:
-		ac.CancelReceiveTimeout()
-		ac.restart()
+		ctx.CancelReceiveTimeout()
+		ctx.restart()
 	case stateStopping:
-		ac.CancelReceiveTimeout()
-		ac.finalizeStop()
+		ctx.CancelReceiveTimeout()
+		ctx.finalizeStop()
 	}
 }
 
-func (ac *actorContext) restart() {
-	ac.incarnateActor()
-	ac.self.sendSystemMessage(ac.actorSystem, resumeMailboxMessage)
-	ac.InvokeUserMessage(startedMessageEnvelope())
+func (ctx *actorContext) restart() {
+	ctx.incarnateActor()
+	ctx.self.sendSystemMessage(ctx.actorSystem, resumeMailboxMessage)
+	ctx.InvokeUserMessage(startedMessageEnvelope())
 
 	for {
-		msg, ok := ac.extras.popStash()
+		msg, ok := ctx.extras.popStash()
 		if !ok {
 			break
 		}
-		ac.InvokeUserMessage(WrapEnvelop(msg))
+		ctx.InvokeUserMessage(WrapEnvelop(msg))
 	}
 }
 
-func (ac *actorContext) finalizeStop() {
-	ac.actorSystem.ProcessRegistry.Remove(ac.self)
-	ac.InvokeUserMessage(stoppedMessage())
+func (ctx *actorContext) finalizeStop() {
+	ctx.actorSystem.ProcessRegistry.Remove(ctx.self)
+	ctx.InvokeUserMessage(stoppedMessage())
 
-	otherStopped := &Terminated{Who: ac.self}
+	otherStopped := &Terminated{Who: ctx.self}
 	// Notify watchers
-	if ac.extras != nil {
-		ac.extras.watchers.ForEach(func(i int, pid *PID) {
-			pid.sendSystemMessage(ac.actorSystem, otherStopped)
+	if ctx.extras != nil {
+		ctx.extras.watchers.ForEach(func(i int, pid *PID) {
+			pid.sendSystemMessage(ctx.actorSystem, otherStopped)
 		})
 	}
 	// Notify parent
-	if ac.parent != nil {
-		ac.parent.sendSystemMessage(ac.actorSystem, otherStopped)
+	if ctx.parent != nil {
+		ctx.parent.sendSystemMessage(ctx.actorSystem, otherStopped)
 	}
 
-	atomic.StoreInt32(&ac.state, stateStopped)
+	atomic.StoreInt32(&ctx.state, stateStopped)
 }
