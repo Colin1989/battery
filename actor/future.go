@@ -1,7 +1,6 @@
 package actor
 
 import (
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -16,7 +15,7 @@ func NewFuture(actorSystem *ActorSystem, d time.Duration) *Future {
 
 	pid, ok := actorSystem.ProcessRegistry.Add(ref, "future"+id)
 	if !ok {
-		logger.Warn("failed to register future process", slog.String("pid", pid.String()))
+		actorSystem.Logger().Warn("failed to register future process", slog.String("pid", pid.String()))
 	}
 
 	//sysMetrics, ok := actorSystem.Extensions.Get(extensionId).(*Metrics)

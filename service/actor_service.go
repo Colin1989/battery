@@ -2,16 +2,17 @@ package service
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/errors"
-	"github.com/colin1989/battery/util"
 	"log/slog"
 	"reflect"
 	"strings"
 
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/logger"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/errors"
+	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/message"
+	"github.com/colin1989/battery/util"
 )
 
 type (
@@ -57,14 +58,14 @@ func (as *ActorService) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor service started", slog.String("name", as.Name),
+		ctx.ActorSystem().Logger().Debug("actor service started", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 		//as.service.OnStart(as)
 	case *actor.Stopping:
-		logger.Debug("actor service stopping", slog.String("name", as.Name),
+		ctx.ActorSystem().Logger().Debug("actor service stopping", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor service stopped", slog.String("name", as.Name),
+		ctx.ActorSystem().Logger().Debug("actor service stopped", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 	case *message.Message:
 		//r.ProcessMessage(ctx, msg)
@@ -76,7 +77,7 @@ func (as *ActorService) Receive(ctx actor.Context) {
 	//logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
 	default:
 		as.service.Receive(ctx)
-		logger.Warn("actor service unsupported type",
+		ctx.ActorSystem().Logger().Warn("actor service unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg),
 			slog.String("name", as.Name),
@@ -119,7 +120,7 @@ func (as *ActorService) handlerMessage(ctx actor.Context, msg *message.Message) 
 	if err != nil && exit {
 		return errors.NewError(err, errors.ErrBadRequestCode)
 	} else if err != nil {
-		logger.Warn("invalid message type", logger.ErrAttr(err))
+		ctx.ActorSystem().Logger().Warn("invalid message type", logger.ErrAttr(err))
 	}
 
 	// First unmarshal the handler arg that will be passed to

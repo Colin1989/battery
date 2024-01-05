@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/router"
 )
 
@@ -58,7 +57,7 @@ func (state *tellerActor) Receive(context actor.Context) {
 			time.Sleep(10 * time.Millisecond)
 		}
 		if msg.i != start+100 {
-			logger.Error("Expected to send 100 messages", slog.Int("start", int(start)), slog.Int("end", int(msg.i)))
+			context.Logger().Error("Expected to send 100 messages", slog.Int("start", int(start)), slog.Int("end", int(msg.i)))
 		}
 	}
 }
