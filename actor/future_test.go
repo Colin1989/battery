@@ -1,9 +1,10 @@
 package actor
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFuture_PipeTo_Message(t *testing.T) {
@@ -18,9 +19,9 @@ func TestFuture_PipeTo_Message(t *testing.T) {
 
 	f := NewFuture(system, 1*time.Second)
 
-	mp1.On("SendUserMessage", p1, WrapEnvelop("hello"))
-	mp2.On("SendUserMessage", p2, WrapEnvelop("hello"))
-	mp3.On("SendUserMessage", p3, WrapEnvelop("hello"))
+	mp1.On("SendUserMessage", p1, WrapEnvelope("hello"))
+	mp2.On("SendUserMessage", p2, WrapEnvelope("hello"))
+	mp3.On("SendUserMessage", p3, WrapEnvelope("hello"))
 
 	f.PipeTo(p1)
 	f.PipeTo(p2)
@@ -30,7 +31,7 @@ func TestFuture_PipeTo_Message(t *testing.T) {
 	assert.IsType(t, &futureProcess{}, ref)
 	fp, _ := ref.(*futureProcess)
 
-	fp.SendUserMessage(f.pid, WrapEnvelop("hello"))
+	fp.SendUserMessage(f.pid, WrapEnvelope("hello"))
 	mp1.AssertExpectations(t)
 	mp2.AssertExpectations(t)
 	mp3.AssertExpectations(t)
@@ -47,9 +48,9 @@ func TestFuture_PipeTo_TimeoutSendsError(t *testing.T) {
 		removeMockProcess(p3)
 	}()
 
-	mp1.On("SendUserMessage", p1, WrapEnvelop(ErrTimeout))
-	mp2.On("SendUserMessage", p2, WrapEnvelop(ErrTimeout))
-	mp3.On("SendUserMessage", p3, WrapEnvelop(ErrTimeout))
+	mp1.On("SendUserMessage", p1, WrapEnvelope(ErrTimeout))
+	mp2.On("SendUserMessage", p2, WrapEnvelope(ErrTimeout))
+	mp3.On("SendUserMessage", p3, WrapEnvelope(ErrTimeout))
 
 	f := NewFuture(system, 10*time.Millisecond)
 	ref, _ := system.ProcessRegistry.Get(f.pid)
@@ -78,10 +79,10 @@ func TestNewFuture_TimeoutNoRace(t *testing.T) {
 	a := rootContext.Spawn(PropsFromFunc(func(context Context) {
 		switch context.Envelope().Message.(type) {
 		case *Started:
-			context.Send(future.PID(), WrapEnvelop(EchoResponse{}))
+			context.Send(future.PID(), WrapEnvelope(EchoResponse{}))
 		}
 	}))
-	_, _ = rootContext.Request(a, WrapEnvelop(nil))
+	_, _ = rootContext.Request(a, WrapEnvelope(nil))
 }
 
 func assertFutureSuccess(future *Future, t *testing.T) interface{} {
@@ -96,7 +97,7 @@ func TestFuture_Result_DeadLetterResponse(t *testing.T) {
 	//plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
-	rootContext.Send(future.PID(), WrapEnvelop(&DeadLetterResponse{}))
+	rootContext.Send(future.PID(), WrapEnvelope(&DeadLetterResponse{}))
 	resp, err := future.Result()
 	a.Equal(ErrDeadLetter, err)
 	a.Nil(resp)
@@ -119,7 +120,7 @@ func TestFuture_Result_Success(t *testing.T) {
 	//plog.SetLevel(log.OffLevel)
 
 	future := NewFuture(system, 1*time.Second)
-	rootContext.Send(future.PID(), WrapEnvelop(EchoResponse{}))
+	rootContext.Send(future.PID(), WrapEnvelope(EchoResponse{}))
 	resp := assertFutureSuccess(future, t)
-	a.Equal(WrapEnvelop(EchoResponse{}), resp)
+	a.Equal(WrapEnvelope(EchoResponse{}), resp)
 }

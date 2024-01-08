@@ -31,7 +31,7 @@ func newDeadLetter(actorSystem *ActorSystem) *deadLetter {
 		}
 		// send back a response instead of timeout.
 		if dlEvent.Sender != nil {
-			actorSystem.Root.Send(dlEvent.Sender, WrapEnvelop(&DeadLetterResponse{Target: dlEvent.PID}))
+			actorSystem.Root.Send(dlEvent.Sender, WrapEnvelope(&DeadLetterResponse{Target: dlEvent.PID}))
 		}
 	})
 

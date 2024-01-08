@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/service"
 )
 
@@ -75,14 +75,14 @@ func (app *Application) Shutdown() {
 func (app *Application) addService(s facade.Service) {
 	as, err := service.NewActorService(s, app)
 	if err != nil {
-		logger.Fatal("addService", logger.ErrAttr(err))
+		blog.Fatal("addService", blog.ErrAttr(err))
 	}
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return as
 	})
 	pid, err := app.system.Root.SpawnNamed(props, s.Name())
 	if err != nil {
-		logger.Fatal("new service", slog.Any("service", s.Name()), logger.ErrAttr(err))
+		blog.Fatal("new service", slog.Any("service", s.Name()), blog.ErrAttr(err))
 	}
 	app.actors.Add(pid)
 }
@@ -90,7 +90,7 @@ func (app *Application) addService(s facade.Service) {
 func (app *Application) Start() {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.CallerStack(r.(error), 1)
+			blog.CallerStack(r.(error), 1)
 		}
 	}()
 
@@ -103,8 +103,8 @@ func (app *Application) Start() {
 	// print version info
 	fmt.Print(GetLOGO())
 
-	for _, service := range app.services {
-		app.addService(service)
+	for _, s := range app.services {
+		app.addService(s)
 	}
 
 	sg := make(chan os.Signal, 1)
@@ -127,10 +127,10 @@ func (app *Application) Start() {
 }
 
 func (app *Application) shutdownActorSystem() {
-	logger.Info("actor system is stopping ...")
+	blog.Info("actor system is stopping ...")
 	app.actors.ForEach(func(_ int, pid *actor.PID) {
 		app.system.Root.Poison(pid)
 	})
 	app.system.Shutdown()
-	logger.Info("actor system is stopped")
+	blog.Info("actor system is stopped")
 }

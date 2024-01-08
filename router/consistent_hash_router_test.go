@@ -1,4 +1,4 @@
-package router_test
+package router
 
 import (
 	"log/slog"
@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/router"
 )
 
 type myMessage struct {
@@ -53,7 +52,7 @@ func (state *tellerActor) Receive(context actor.Context) {
 	case *myMessage:
 		start := msg.i
 		for i := 0; i < 100; i++ {
-			context.Send(msg.pid, actor.WrapEnvelop(msg))
+			context.Send(msg.pid, actor.WrapEnvelope(msg))
 			time.Sleep(10 * time.Millisecond)
 		}
 		if msg.i != start+100 {
@@ -65,23 +64,23 @@ func (state *tellerActor) Receive(context actor.Context) {
 func (state *managerActor) Receive(context actor.Context) {
 	envelope := context.Envelope()
 	switch msg := envelope.Message.(type) {
-	case *router.Routees:
+	case *Routees:
 		state.set = msg.PIDs
 		for i, v := range state.set {
 			if i%2 == 0 {
-				context.Send(state.rpid, router.RemoveRouteeEnvelope(v))
+				context.Send(state.rpid, RemoveRouteeEnvelope(v))
 				// log.Println(v)
 			} else {
 				props := actor.PropsFromProducer(func() actor.Actor { return &routerActor{} })
 				pid := context.Spawn(props)
-				context.Send(state.rpid, router.AddRouteeEnvelope(pid))
+				context.Send(state.rpid, AddRouteeEnvelope(pid))
 				// log.Println(v)
 			}
 		}
-		context.Send(context.Self(), actor.WrapEnvelop(&getRoutees{state.rpid}))
+		context.Send(context.Self(), actor.WrapEnvelope(&getRoutees{state.rpid}))
 	case *getRoutees:
 		state.rpid = msg.pid
-		context.Send(msg.pid, actor.WrapEnvelop(&router.GetRoutees{}))
+		context.Send(msg.pid, actor.WrapEnvelope(&GetRoutees{}))
 	}
 }
 
@@ -91,17 +90,21 @@ func TestConcurrency(t *testing.T) {
 	}
 
 	wait.Add(100 * 1000)
-	rpid := system.Root.Spawn(router.NewConsistentHashPool(100).Configure(actor.WithProducer(func() actor.Actor { return &routerActor{} })))
+	rpid := system.Root.Spawn(
+		NewConsistentHashPool(100).
+			Configure(actor.WithProducer(func() actor.Actor {
+				return &routerActor{}
+			})))
 
 	props := actor.PropsFromProducer(func() actor.Actor { return &tellerActor{} })
 	for i := 0; i < 1000; i++ {
 		pid := system.Root.Spawn(props)
-		system.Root.Send(pid, actor.WrapEnvelop(&myMessage{int32(i), rpid}))
+		system.Root.Send(pid, actor.WrapEnvelope(&myMessage{int32(i), rpid}))
 	}
 
 	props = actor.PropsFromProducer(func() actor.Actor { return &managerActor{} })
 	pid := system.Root.Spawn(props)
-	system.Root.Send(pid, actor.WrapEnvelop(&getRoutees{rpid}))
+	system.Root.Send(pid, actor.WrapEnvelope(&getRoutees{rpid}))
 
 	// Implementing the timeout
 	timeout := time.After(5 * time.Second)

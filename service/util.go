@@ -2,14 +2,14 @@ package service
 
 import (
 	"fmt"
-	serialize "github.com/colin1989/battery/serializer"
-	"github.com/colin1989/battery/util"
 	"reflect"
 
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/errors"
-	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/proto"
+	"github.com/colin1989/battery/serializer"
+	"github.com/colin1989/battery/util"
 )
 
 func getMsgType(msgTypeIface interface{}) (message.Type, error) {
@@ -72,10 +72,10 @@ func unmarshalHandlerArg(handler *Handler, serializer serialize.Serializer, payl
 func serializeReturn(ser serialize.Serializer, ret interface{}) ([]byte, error) {
 	res, err := util.SerializeOrRaw(ser, ret)
 	if err != nil {
-		logger.Error("Failed to serialize return", logger.ErrAttr(err))
+		blog.Error("Failed to serialize return", blog.ErrAttr(err))
 		res, err = util.GetErrorPayload(ser, err)
 		if err != nil {
-			logger.Error("cannot serialize message and respond to the client", logger.ErrAttr(err))
+			blog.Error("cannot serialize message and respond to the client", blog.ErrAttr(err))
 			return nil, err
 		}
 	}
@@ -97,7 +97,7 @@ func Pcall(method reflect.Method, args []reflect.Value) (rets interface{}, err e
 			} else {
 				err = fmt.Errorf("rpc call internal error - %s: %v", method.Name, rec)
 			}
-			logger.CallerStack(err, 1)
+			blog.CallerStack(err, 1)
 		}
 	}()
 

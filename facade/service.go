@@ -12,12 +12,14 @@ type Acceptors struct {
 }
 
 type Service interface {
-	actor.Actor
+	//actor.Actor
 	Name() string
-	//OnStart(as ActorService)
+	OnStart(ctx actor.Context)
+	OnDestroy(ctx actor.Context)
 }
 
 //type ActorService interface {
+//	Context() *actor.Context
 //}
 
 type ActorHandler func(actor.Context, any)

@@ -68,7 +68,7 @@ func UnwrapEnvelope(message interface{}) (ReadonlyMessageHeader, interface{}, *P
 	return nil, message, nil
 }
 
-func WrapEnvelop(message interface{}) *MessageEnvelope {
+func WrapEnvelope(message interface{}) *MessageEnvelope {
 	return &MessageEnvelope{
 		Header:  nil,
 		Message: message,

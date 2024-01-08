@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"reflect"
 	"time"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 )
 
 type (
@@ -23,13 +24,13 @@ func (c *child) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	default:
-		logger.Warn("actor unsupported type",
+		blog.Warn("actor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 	}
@@ -40,15 +41,15 @@ func (f *parent) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *MessageCreateChild:
 		childPID = ctx.Spawn(actor.PropsFromProducer(createChildActor))
 	default:
-		logger.Warn("actor unsupported type",
+		blog.Warn("actor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 	}
@@ -68,7 +69,7 @@ func main() {
 	})
 
 	parentPID = system.Root.Spawn(props)
-	system.Root.Send(parentPID, actor.WrapEnvelop(&MessageCreateChild{}))
+	system.Root.Send(parentPID, actor.WrapEnvelope(&MessageCreateChild{}))
 
 	time.Sleep(time.Second * 1)
 	if len(parentCtx.Children()) != 1 {

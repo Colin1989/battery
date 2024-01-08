@@ -30,7 +30,7 @@ func WithGate(acceptors []facade.Acceptors) Option {
 			func() actor.Actor {
 				return gate.NewGate(acceptors, app)
 			})
-		pid, err := app.system.Root.SpawnNamed(producer, constant.TCPAcceptor)
+		pid, err := app.system.Root.SpawnNamed(producer, constant.Gate)
 		if err != nil {
 			return err
 		}

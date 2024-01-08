@@ -9,7 +9,7 @@ type ManagementMessage interface {
 }
 
 type BroadcastMessage struct {
-	Message interface{}
+	Message *actor.MessageEnvelope
 }
 
 func (*AddRoutee) ManagementMessage()        {}
@@ -19,13 +19,21 @@ func (*AdjustPoolSize) ManagementMessage()   {}
 func (*BroadcastMessage) ManagementMessage() {}
 
 func AddRouteeEnvelope(pid *actor.PID) *actor.MessageEnvelope {
-	return actor.WrapEnvelop(&AddRoutee{
+	return actor.WrapEnvelope(&AddRoutee{
 		PID: pid,
 	})
 }
 
 func RemoveRouteeEnvelope(pid *actor.PID) *actor.MessageEnvelope {
-	return actor.WrapEnvelop(&RemoveRoutee{
+	return actor.WrapEnvelope(&RemoveRoutee{
 		PID: pid,
 	})
+}
+
+func GetRouteesEnvelope() *actor.MessageEnvelope {
+	return actor.WrapEnvelope(&GetRoutees{})
+}
+
+func BroadcastMessageEnvelope(envelope *actor.MessageEnvelope) *actor.MessageEnvelope {
+	return actor.WrapEnvelope(&BroadcastMessage{Message: envelope})
 }

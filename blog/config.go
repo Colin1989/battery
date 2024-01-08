@@ -1,4 +1,4 @@
-package logger
+package blog
 
 type LogConfig struct {
 	Level      string `json:"level"`       // 输出日志等级

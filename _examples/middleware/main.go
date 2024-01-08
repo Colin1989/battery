@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/actor/middleware"
-	"github.com/colin1989/battery/logger"
 	"log"
 	"log/slog"
 	"math/rand"
 	"reflect"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/actor/middleware"
+	"github.com/colin1989/battery/blog"
 )
 
 type (
@@ -26,7 +27,7 @@ type (
 )
 
 func (c *child) Receive(ctx actor.Context) {
-	logger.Info("Receive", slog.Any("msg", ctx.Envelope()))
+	blog.Info("Receive", slog.Any("msg", ctx.Envelope()))
 }
 
 func createChildActor() actor.Actor {
@@ -37,17 +38,17 @@ func receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *hello:
-		logger.Info("Hello", slog.String("say", msg.Who))
-		ctx.Send(ctx.Self(), actor.WrapEnvelop(&again{}))
+		blog.Info("Hello", slog.String("say", msg.Who))
+		ctx.Send(ctx.Self(), actor.WrapEnvelope(&again{}))
 		ctx.Spawn(actor.PropsFromProducer(createChildActor))
 	case *again:
-		logger.Info("again")
+		blog.Info("again")
 	}
 }
 
@@ -66,7 +67,7 @@ func (mw *middleWare1) spawnMiddleware(next actor.SpawnFunc) actor.SpawnFunc {
 	fn := func(actorSystem *actor.ActorSystem, id string, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
 		pid, err := next(actorSystem, id, props, parentContext)
 
-		logger.Info("spawnMiddleware",
+		blog.Info("spawnMiddleware",
 			slog.String("parent", parentContext.Self().String()),
 			slog.String("child", pid.String()))
 
@@ -80,7 +81,7 @@ func main() {
 	system := actor.NewActorSystem()
 	mw := new(middleWare1)
 	mw.RandNum = rand.Int()
-	logger.Info("RandNum", slog.Int("num", mw.RandNum))
+	blog.Info("RandNum", slog.Int("num", mw.RandNum))
 	rootContext := actor.NewRootContext(system, nil).WithSpawnMiddleware(mw.spawnMiddleware)
 	props := actor.PropsFromFunc(
 		receive,
@@ -89,8 +90,8 @@ func main() {
 		actor.WithSpawnMiddleware(mw.spawnMiddleware),
 	)
 	pid := rootContext.Spawn(props)
-	rootContext.Send(pid, actor.WrapEnvelop(&hello{Who: "Roger"}))
-	rootContext.Send(pid, actor.WrapEnvelop(&hello{Who: "Roger"}))
+	rootContext.Send(pid, actor.WrapEnvelope(&hello{Who: "Roger"}))
+	rootContext.Send(pid, actor.WrapEnvelope(&hello{Who: "Roger"}))
 	rootContext.Poison(pid)
 
 	system.Shutdown()

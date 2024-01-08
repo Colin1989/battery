@@ -1,14 +1,15 @@
 package router
 
 import (
-	"github.com/colin1989/battery/actor"
 	"sync"
 	"sync/atomic"
+
+	"github.com/colin1989/battery/actor"
 )
 
-// process serves as a proxy to the router implementation and forwards messages directly to the routee. This
+// routerProcess serves as a proxy to the router implementation and forwards messages directly to the routee. This
 // optimization avoids serializing router messages through an actor
-type process struct {
+type routerProcess struct {
 	parent      *actor.PID
 	router      *actor.PID
 	state       State
@@ -18,9 +19,9 @@ type process struct {
 	actorSystem *actor.ActorSystem
 }
 
-var _ actor.Process = &process{}
+var _ actor.Process = &routerProcess{}
 
-func (ref *process) SendUserMessage(pid *actor.PID, envelope *actor.MessageEnvelope) {
+func (ref *routerProcess) SendUserMessage(pid *actor.PID, envelope *actor.MessageEnvelope) {
 	msg := envelope.Message
 
 	// Add support for PoisonPill. Originally only Stop is supported.
@@ -32,13 +33,11 @@ func (ref *process) SendUserMessage(pid *actor.PID, envelope *actor.MessageEnvel
 		ref.state.RouteMessage(envelope)
 	} else {
 		r, _ := ref.actorSystem.ProcessRegistry.Get(ref.router)
-		// Always send the original message to the router actor,
-		// since if the message is enveloped, the sender need to get a response.
 		r.SendUserMessage(pid, envelope)
 	}
 }
 
-func (ref *process) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
+func (ref *routerProcess) SendSystemMessage(pid *actor.PID, message actor.SystemMessage) {
 	switch msg := message.(type) {
 	case *actor.Watch:
 		if atomic.LoadInt32(&ref.stopping) == 1 {
@@ -74,6 +73,7 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message actor.SystemMessag
 		}
 		ref.mu.Unlock()
 
+		ref.finalizeStop(pid)
 	default:
 		r, _ := ref.actorSystem.ProcessRegistry.Get(ref.router)
 		r.SendSystemMessage(pid, message)
@@ -81,17 +81,21 @@ func (ref *process) SendSystemMessage(pid *actor.PID, message actor.SystemMessag
 	}
 }
 
-func (ref *process) Stop(pid *actor.PID) {
+func (ref *routerProcess) finalizeStop(pid *actor.PID) {
 	if atomic.SwapInt32(&ref.stopping, 1) == 1 {
 		return
 	}
 
 	_ = ref.actorSystem.Root.StopFuture(ref.router).Wait()
 	ref.actorSystem.ProcessRegistry.Remove(pid)
+}
+
+func (ref *routerProcess) Stop(pid *actor.PID) {
+	ref.finalizeStop(pid)
 	ref.SendSystemMessage(pid, &actor.Stop{})
 }
 
-func (ref *process) Poison(pid *actor.PID) {
+func (ref *routerProcess) Poison(pid *actor.PID) {
 	if atomic.SwapInt32(&ref.stopping, 1) == 1 {
 		return
 	}

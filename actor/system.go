@@ -1,8 +1,9 @@
 package actor
 
 import (
-	"github.com/lithammer/shortuuid/v4"
 	"log/slog"
+
+	"github.com/lithammer/shortuuid/v4"
 )
 
 //goland:noinspection GoNameStartsWithPackageName
@@ -28,11 +29,11 @@ func NewActorSystemWithConfig(config *Config) *ActorSystem {
 	actorSystem.Config = config
 	actorSystem.ID = shortuuid.New()
 	actorSystem.stopper = make(chan struct{}, 1)
+	actorSystem.logger = config.LoggerFactory(actorSystem)
 	actorSystem.ProcessRegistry = NewProcessRegistry(actorSystem)
 	actorSystem.Root = NewRootContext(actorSystem, EmptyMessageHeader)
 	actorSystem.EventStream = NewEventStream()
 	actorSystem.DeadLetter = newDeadLetter(actorSystem)
-	actorSystem.logger = config.LoggerFactory(actorSystem)
 
 	return actorSystem
 }

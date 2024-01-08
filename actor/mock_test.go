@@ -2,8 +2,9 @@ package actor
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/mock"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 )
 
 var (
@@ -76,8 +77,8 @@ func (m *mockContext) Send(_ *PID, _ *MessageEnvelope) {
 	m.Called()
 }
 
-func (m *mockContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
-	args := m.Called(pid, message)
+func (m *mockContext) Request(pid *PID, envelope *MessageEnvelope) (*MessageEnvelope, error) {
+	args := m.Called(pid, envelope)
 	return args.Get(0).(*MessageEnvelope), args.Get(0).(error)
 }
 

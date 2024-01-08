@@ -3,13 +3,14 @@ package acceptor
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
-	"github.com/gorilla/websocket"
 	"log/slog"
 	"net"
 	"net/http"
 	"reflect"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
+	"github.com/gorilla/websocket"
 )
 
 type WSAcceptor struct {
@@ -48,7 +49,7 @@ func (wa *WSAcceptor) Receive(ctx actor.Context) {
 		wa.ctx = nil
 		wa.listener.Close()
 	default:
-		logger.Warn("actor unsupported type",
+		blog.Warn("actor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 	}
@@ -87,5 +88,5 @@ func (wa *WSAcceptor) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	}
 
 	connector := NewWSConn(conn)
-	wa.ctx.ActorSystem().Root.Send(wa.ctx.Parent(), actor.WrapEnvelop(connector))
+	wa.ctx.ActorSystem().Root.Send(wa.ctx.Parent(), actor.WrapEnvelope(connector))
 }

@@ -2,54 +2,72 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
-	"reflect"
 
 	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
+	"github.com/colin1989/battery/router"
 )
 
 type Room struct {
-	users actor.PIDSet
+	broadcastGroup *actor.PID
+}
+
+func NewRoomService() *Room {
+
+	return &Room{}
 }
 
 func (r *Room) Name() string {
 	return "room"
 }
 
-func (r *Room) Receive(ctx actor.Context) {
-	envelope := ctx.Envelope()
-	switch msg := envelope.Message.(type) {
-	case *actor.Started:
-		logger.Debug("room started", slog.String("pid", ctx.Self().String()))
-	case *actor.Stopping:
-		logger.Debug("room stopping", slog.String("pid", ctx.Self().String()))
-	case *actor.Stopped:
-		logger.Debug("room stopped", slog.String("pid", ctx.Self().String()))
-	//case *message.Message:
-	//	r.ProcessMessage(ctx, msg)
-	case *actor.Terminated:
-		r.users.Remove(msg.Who)
-		logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
-	case *actor.DeadLetterResponse:
-		r.users.Remove(msg.Target)
-		logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
-	default:
-		logger.Warn("room unsupported type",
-			slog.String("type", reflect.TypeOf(msg).String()),
-			slog.Any("msg", msg))
-	}
-}
-
-//func (r *Room) OnStart(as facade.ActorService) {
-//	//as.RegisterHandler(&Join{}, r.Join)
+//func (r *Room) Receive(ctx actor.Context) {
+//	envelope := ctx.Envelope()
+//	switch msg := envelope.Message.(type) {
+//	//	case *actor.Started:
+//	//		blog.Debug("room started", slog.String("pid", ctx.Self().String()))
+//	//	case *actor.Stopping:
+//	//		blog.Debug("room stopping", slog.String("pid", ctx.Self().String()))
+//	//	case *actor.Stopped:
+//	//		blog.Debug("room stopped", slog.String("pid", ctx.Self().String()))
+//	//	//case *message.Message:
+//	//	//	r.ProcessMessage(ctx, msg)
+//	//	case *actor.Terminated:
+//	//		r.users.Remove(msg.Who)
+//	//		blog.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
+//	//	case *actor.DeadLetterResponse:
+//	//		r.users.Remove(msg.Target)
+//	//		blog.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
+//	default:
+//		blog.Warn("room unsupported type",
+//			blog.TypeAttr(msg),
+//			slog.Any("msg", msg))
+//	}
 //}
 
-func (r *Room) AllMembers() []string {
-	allMembers := make([]string, 0, r.users.Len())
-	r.users.ForEach(func(_ int, pid *actor.PID) {
+func (r *Room) OnStart(ctx actor.Context) {
+	//as.RegisterHandler(&Join{}, r.Join)
+	r.broadcastGroup = ctx.Spawn(router.NewBroadcastGroup())
+}
+
+func (r *Room) OnDestroy(ctx actor.Context) {
+	//ctx.Stop(r.broadcastGroup)
+}
+
+func (r *Room) AllMembers(ctx actor.Context) []string {
+	request, err := ctx.Request(r.broadcastGroup, router.GetRouteesEnvelope())
+	if err != nil {
+		return nil
+	}
+
+	routees, ok := request.Message.(*router.Routees)
+	if !ok {
+		return nil
+	}
+
+	allMembers := make([]string, 0, len(routees.PIDs))
+	for _, pid := range routees.PIDs {
 		allMembers = append(allMembers, pid.ID)
-	})
+	}
 	return allMembers
 }
 
@@ -59,22 +77,18 @@ func (r *Room) Join(ctx actor.Context) (*JoinResponse, error) {
 		Result: "success",
 	}
 	// ctx.Send(ctx.Sender(), actor.WrapResponseEnvelop(msg.ID, response))
+	ctx.Send(ctx.Sender(), actor.WrapPushEnvelop("onMembers", &AllMembers{Members: r.AllMembers(ctx)}))
 
-	ctx.Send(ctx.Sender(), actor.WrapPushEnvelop("onMembers", &AllMembers{Members: r.AllMembers()}))
+	push := actor.WrapPushEnvelop("onNewUser", &NewUser{Content: fmt.Sprintf("New user: %s", ctx.Sender().String())})
+	ctx.Send(r.broadcastGroup, push)
 
-	r.users.ForEach(func(_ int, pid *actor.PID) {
-		ctx.Send(pid, actor.WrapPushEnvelop("onNewUser", &NewUser{Content: fmt.Sprintf("New user: %s", ctx.Sender().String())}))
-	})
+	ctx.Send(r.broadcastGroup, router.AddRouteeEnvelope(ctx.Sender()))
 
-	r.users.Add(ctx.Sender())
-
-	ctx.Watch(ctx.Sender())
 	//_ = response
 	return response, nil
 }
 
 func (r *Room) Message(ctx actor.Context, message *UserMessage) {
-	r.users.ForEach(func(_ int, pid *actor.PID) {
-		ctx.Send(pid, actor.WrapPushEnvelop("onMessage", message))
-	})
+	push := actor.WrapPushEnvelop("onMessage", message)
+	ctx.Send(r.broadcastGroup, push)
 }

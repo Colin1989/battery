@@ -1,6 +1,7 @@
 package router
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/colin1989/battery/actor"
@@ -59,12 +60,17 @@ func spawner(config RouterConfig) actor.SpawnFunc {
 }
 
 func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props *actor.Props, parentContext actor.SpawnerContext) (*actor.PID, error) {
-	ref := &process{
+	ref := &routerProcess{
 		actorSystem: actorSystem,
 	}
 	proxy, absent := actorSystem.ProcessRegistry.Add(ref, id)
 	if !absent {
 		return proxy, actor.ErrNameExists
+	}
+
+	routerId := id
+	if ids := strings.Split(proxy.ID, "/"); len(ids) > 0 {
+		routerId = ids[len(ids)-1]
 	}
 
 	pc := *props
@@ -74,26 +80,44 @@ func spawn(actorSystem *actor.ActorSystem, id string, config RouterConfig, props
 	if config.RouterType() == GroupRouterType {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		//ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		//	return &groupRouterActor{
+		//		props:  &pc,
+		//		config: config,
+		//		state:  ref.state,
+		//		wg:     wg,
+		//	}
+		//}), parentContext)
+		routerProps := actor.PropsFromProducer(func() actor.Actor {
 			return &groupRouterActor{
 				props:  &pc,
 				config: config,
 				state:  ref.state,
 				wg:     wg,
 			}
-		}), parentContext)
+		})
+		ref.router, _ = parentContext.SpawnNamed(routerProps, routerId+"/router")
 		wg.Wait() // wait for routerActor to start
 	} else {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
-		ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		//ref.router, _ = actor.DefaultSpawner(actorSystem, id+"/router", actor.PropsFromProducer(func() actor.Actor {
+		//	return &poolRouterActor{
+		//		props:  &pc,
+		//		config: config,
+		//		state:  ref.state,
+		//		wg:     wg,
+		//	}
+		//}), parentContext)
+		routerProps := actor.PropsFromProducer(func() actor.Actor {
 			return &poolRouterActor{
 				props:  &pc,
 				config: config,
 				state:  ref.state,
 				wg:     wg,
 			}
-		}), parentContext)
+		})
+		ref.router, _ = parentContext.SpawnNamed(routerProps, routerId+"/router")
 		wg.Wait() // wait for routerActor to start
 	}
 

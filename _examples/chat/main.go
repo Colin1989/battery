@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/colin1989/battery"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/logger"
-	"net/http"
 )
 
 func main() {
@@ -16,7 +17,7 @@ func main() {
 
 	http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
 	go http.ListenAndServe(":2251", nil)
-	logger.Infof("http run. http://%s", "localhost:2251/web/")
+	blog.Infof("http run. http://%s", "localhost:2251/web/")
 
 	app.Start()
 	defer app.Shutdown()

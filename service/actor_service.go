@@ -6,9 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/colin1989/battery/logger"
-
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/message"
@@ -32,8 +31,13 @@ type (
 		handlers map[string]*Handler // registered methods
 
 		service facade.Service
+		system  *actor.ActorSystem
 	}
 )
+
+func (as *ActorService) ActorSystem() *actor.ActorSystem {
+	return as.system
+}
 
 func NewActorService(service facade.Service, app facade.App) (*ActorService, error) {
 	as := &ActorService{}
@@ -60,13 +64,15 @@ func (as *ActorService) Receive(ctx actor.Context) {
 	case *actor.Started:
 		ctx.ActorSystem().Logger().Debug("actor service started", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
-		//as.service.OnStart(as)
+		as.system = ctx.ActorSystem()
+		as.service.OnStart(ctx)
 	case *actor.Stopping:
 		ctx.ActorSystem().Logger().Debug("actor service stopping", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
 		ctx.ActorSystem().Logger().Debug("actor service stopped", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
+		as.service.OnDestroy(ctx)
 	case *message.Message:
 		//r.ProcessMessage(ctx, msg)
 		//as.service.ProcessMessage(ctx, msg)
@@ -76,7 +82,7 @@ func (as *ActorService) Receive(ctx actor.Context) {
 	//r.users.Remove(msg.Target)
 	//logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
 	default:
-		as.service.Receive(ctx)
+		//as.service.Receive(ctx)
 		ctx.ActorSystem().Logger().Warn("actor service unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg),
@@ -120,7 +126,7 @@ func (as *ActorService) handlerMessage(ctx actor.Context, msg *message.Message) 
 	if err != nil && exit {
 		return errors.NewError(err, errors.ErrBadRequestCode)
 	} else if err != nil {
-		ctx.ActorSystem().Logger().Warn("invalid message type", logger.ErrAttr(err))
+		ctx.ActorSystem().Logger().Warn("invalid message type", blog.ErrAttr(err))
 	}
 
 	// First unmarshal the handler arg that will be passed to

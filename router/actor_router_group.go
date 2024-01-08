@@ -2,19 +2,18 @@ package router
 
 import (
 	"sync"
-	"time"
 
 	"github.com/colin1989/battery/actor"
 )
 
-type poolRouterActor struct {
+type groupRouterActor struct {
 	props  *actor.Props
 	config RouterConfig
 	state  State
 	wg     *sync.WaitGroup
 }
 
-func (a *poolRouterActor) Receive(context actor.Context) {
+func (a *groupRouterActor) Receive(context actor.Context) {
 	envelope := context.Envelope()
 	message := envelope.Message
 	switch m := message.(type) {
@@ -40,22 +39,14 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 		context.Unwatch(m.PID)
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
-		// sleep for 1ms before sending the poison pill
-		// This is to give some time to the routee actor receive all
-		// the messages. Specially due to the synchronization conditions in
-		// consistent hash router, where a copy of hmc can be obtained before
-		// the update and cause messages routed to a dead routee if there is no
-		// delay. This is a best effort approach and 1ms seems to be acceptable
-		// in terms of both delay it cause to the router actor and the time it
-		// provides for the routee to receive messages before it dies.
-		time.Sleep(time.Millisecond * 1)
-		context.Send(m.PID, actor.PoisonPillMessage())
 
 	case *BroadcastMessage:
 		msg := m.Message
-		sender := context.Sender()
+		//sender := context.Sender()
+		//m.Message.Sender = context.Sender()
 		a.state.GetRoutees().ForEach(func(i int, pid *actor.PID) {
-			context.Send(pid, actor.WrapEnvelopWithSender(msg, sender))
+			//context.Send(pid, actor.WrapEnvelopWithSender(msg, sender))
+			context.Send(pid, msg)
 		})
 
 	case *GetRoutees:
@@ -65,7 +56,7 @@ func (a *poolRouterActor) Receive(context actor.Context) {
 			routees[i] = pid
 		})
 
-		context.Respond(actor.WrapEnvelop(&Routees{PIDs: routees}))
+		context.Respond(actor.WrapEnvelope(&Routees{PIDs: routees}))
 	case *actor.Terminated:
 		r := a.state.GetRoutees()
 		if r.Remove(m.Who) {

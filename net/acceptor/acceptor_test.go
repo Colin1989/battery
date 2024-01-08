@@ -2,6 +2,7 @@ package acceptor
 
 import (
 	"fmt"
+
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/facade"
@@ -41,11 +42,11 @@ func (ta *tAgent) Receive(ctx actor.Context) {
 			resp = ta.message[0]
 			ta.message = ta.message[1:]
 		}
-		ctx.Respond(actor.WrapEnvelop(resp))
+		ctx.Respond(actor.WrapEnvelope(resp))
 	case *localAddr:
-		ctx.Respond(actor.WrapEnvelop(ta.conn.LocalAddr()))
+		ctx.Respond(actor.WrapEnvelope(ta.conn.LocalAddr()))
 	case *remoteAddr:
-		ctx.Respond(actor.WrapEnvelop(ta.conn.RemoteAddr()))
+		ctx.Respond(actor.WrapEnvelope(ta.conn.RemoteAddr()))
 	default:
 		fmt.Printf("tAgent unsupported type %T msg : %+v \n", msg, msg)
 		ta.message = append(ta.message, msg)
@@ -57,12 +58,12 @@ func (ta *tAgent) read(ctx actor.Context) {
 		msg, err := ta.conn.GetNextMessage()
 		if err != nil {
 			fmt.Printf("pid[%v] conn receive err[%v]  \n", ctx.Self().String(), err)
-			ctx.Send(ctx.Self(), actor.WrapEnvelop(err))
+			ctx.Send(ctx.Self(), actor.WrapEnvelope(err))
 			//ctx.Poison(ctx.Self())
 			return
 			//continue
 		}
-		ctx.Send(ctx.Self(), actor.WrapEnvelop(msg))
+		ctx.Send(ctx.Self(), actor.WrapEnvelope(msg))
 	}
 }
 
@@ -89,7 +90,7 @@ func (am *TAgentManager) Receive(ctx actor.Context) {
 		})
 		ctx.SpawnPrefix(props, constant.AgentPrefix)
 	case *ReqChildCount:
-		ctx.Respond(actor.WrapEnvelop(len(ctx.Children())))
+		ctx.Respond(actor.WrapEnvelope(len(ctx.Children())))
 	default:
 		fmt.Printf("TAgentManager unsupported type %T msg : %+v \n", msg, msg)
 	}

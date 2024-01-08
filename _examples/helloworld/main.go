@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
 	"log/slog"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 )
 
 type (
@@ -18,13 +19,13 @@ func (h *helloActor) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 	case *hello:
-		logger.Info("Hello", slog.String("say", msg.Say))
+		blog.Info("Hello", slog.String("say", msg.Say))
 	}
 }
 
@@ -35,12 +36,12 @@ func main() {
 	})
 
 	pid := system.Root.Spawn(props)
-	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "World"}))
+	system.Root.Send(pid, actor.WrapEnvelope(&hello{Say: "World"}))
 
 	for i := 0; i < 10000; i++ {
 		j := i
 		go func() {
-			system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: fmt.Sprintf("ID:%v", j)}))
+			system.Root.Send(pid, actor.WrapEnvelope(&hello{Say: fmt.Sprintf("ID:%v", j)}))
 		}()
 	}
 	system.Root.Poison(pid)
@@ -50,12 +51,12 @@ func main() {
 		if !ok {
 			return
 		}
-		logger.Info("receive dead letter", slog.Any("event", dlEvent))
+		blog.Info("receive dead letter", slog.Any("event", dlEvent))
 	})
 	defer func() {
 		system.EventStream.Unsubscribe(eventSub)
 	}()
-	system.Root.Send(pid, actor.WrapEnvelop(&hello{Say: "Poison"}))
+	system.Root.Send(pid, actor.WrapEnvelope(&hello{Say: "Poison"}))
 
 	system.Shutdown()
 }

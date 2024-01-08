@@ -1,18 +1,19 @@
 package agent
 
 import (
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/logger"
-	"github.com/colin1989/battery/net/message"
-	"github.com/colin1989/battery/net/packet"
-	"github.com/colin1989/battery/proto"
 	"log/slog"
 	"net"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
+	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/facade"
+	"github.com/colin1989/battery/net/message"
+	"github.com/colin1989/battery/net/packet"
+	"github.com/colin1989/battery/proto"
 )
 
 type pendingWrite struct {
@@ -58,23 +59,23 @@ func (a *Agent) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		a.ctx = ctx
 		a.pid = ctx.Self()
 		a.run()
 	case *actor.Restarting:
-		logger.Debug("actor restarting", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor restarting", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopping:
-		logger.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopping", slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		a.Close()
 	case message.PendingMessage:
 		sendPacket(a, msg)
 	//case *actor.ReceiveTimeout:
 	//	ctx.Stop(ctx.Self())
 	case *packet.Packet:
-		logger.Debug("actor receive packet", slog.String("pid", ctx.Self().String()),
+		blog.Debug("actor receive packet", slog.String("pid", ctx.Self().String()),
 			slog.String("msg", msg.String()))
 		err := processPacket(a, msg)
 		if err != nil {
@@ -83,7 +84,7 @@ func (a *Agent) Receive(ctx actor.Context) {
 		}
 	default:
 		// TODO Router
-		logger.Warn("actor unsupported type",
+		blog.Warn("actor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 	}
@@ -148,7 +149,7 @@ func (a *Agent) write() {
 				return
 			}
 			if _, err := a.conn.Write(pWrite.data); err != nil {
-				logger.Error("Failed to write in conn", logger.ErrAttr(err))
+				blog.Error("Failed to write in conn", blog.ErrAttr(err))
 				return
 			}
 		case <-a.chDie:
@@ -160,7 +161,7 @@ func (a *Agent) write() {
 func (a *Agent) read() {
 	defer func() {
 		if r := recover(); r != nil {
-			logger.CallerStack(r.(error), 1)
+			blog.CallerStack(r.(error), 1)
 		}
 		a.ctx.Poison(a.ctx.Self())
 	}()
@@ -168,26 +169,26 @@ func (a *Agent) read() {
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			logger.Error("conn receive error",
+			blog.Error("conn receive error",
 				slog.String("pid", a.PID()),
-				logger.ErrAttr(err))
-			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(err))
+				blog.ErrAttr(err))
+			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelope(err))
 			return
 		}
 		packets, err := a.app.Decoder().Decode(msg)
 		if err != nil {
-			logger.Error("Failed to decode message", slog.String("error", err.Error()))
+			blog.Error("Failed to decode message", slog.String("error", err.Error()))
 			return
 		}
 
 		if len(packets) < 1 {
-			logger.Warn("Read no packets", slog.String("pid", a.PID()))
+			blog.Warn("Read no packets", slog.String("pid", a.PID()))
 			continue
 		}
 
 		// process all packet
 		for _, p := range packets {
-			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelop(p))
+			a.ctx.Send(a.ctx.Self(), actor.WrapEnvelope(p))
 		}
 	}
 }

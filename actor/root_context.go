@@ -106,17 +106,13 @@ func (rc *RootContext) Send(pid *PID, envelope *MessageEnvelope) {
 //	@param message message's type cannot be MessageEnvelope
 //	@return *MessageEnvelope
 //	@return error
-func (rc *RootContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
+func (rc *RootContext) Request(pid *PID, envelope *MessageEnvelope) (*MessageEnvelope, error) {
 	// TODO: timeout 应该作为配置
 	timeout := time.Second * 5
 	future := NewFuture(rc.actorSystem, timeout)
-	envelope := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  future.pid,
-	}
-	pid.sendUserMessage(rc.actorSystem, envelope)
+	envelope.Sender = future.pid
 
+	pid.sendUserMessage(rc.actorSystem, envelope)
 	return future.Result()
 }
 
@@ -183,7 +179,6 @@ func (rc *RootContext) SpawnPrefix(props *Props, prefix string) *PID {
 }
 
 func (rc *RootContext) SpawnNamed(props *Props, name string) (*PID, error) {
-
 	if rc.spawnMiddleware != nil {
 		return rc.spawnMiddleware(rc.actorSystem, name, props, rc)
 	}

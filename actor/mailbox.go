@@ -1,7 +1,7 @@
 package actor
 
 import (
-	"github.com/colin1989/battery/logger"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/queue/goring"
 	"github.com/colin1989/battery/queue/mpsc"
 	"runtime"
@@ -113,7 +113,7 @@ func (m *defaultMailbox) run() {
 	defer func() {
 		if r := recover(); r != nil {
 			//plog.Info("[ACTOR] Recovering", log.Object("actor", m.invoker), log.Object("reason", r), log.Stack())
-			logger.CallerStack(r.(error), 1)
+			blog.CallerStack(r.(error), 1)
 			m.invoker.EscalateFailure(r, envelope)
 		}
 	}()

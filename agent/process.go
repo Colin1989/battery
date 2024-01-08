@@ -6,8 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/logger"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/net/packet"
 )
@@ -15,15 +15,15 @@ import (
 func processPacket(a *Agent, p *packet.Packet) error {
 	switch p.Type {
 	case packet.Handshake:
-		logger.Debug("Received handshake packet")
+		blog.Debug("Received handshake packet")
 
 		// Parse the json sent with the handshake by the client
 		handshakeData := &packet.HandshakeData{}
 		if err := json.Unmarshal(p.Data, handshakeData); err != nil {
 			defer a.Close()
-			logger.Error("Failed to unmarshal handshake data", logger.ErrAttr(err))
+			blog.Error("Failed to unmarshal handshake data", blog.ErrAttr(err))
 			if serr := a.send(herd); serr != nil {
-				logger.Error("Error sending handshake error response: %s", logger.ErrAttr(err))
+				blog.Error("Error sending handshake error response: %s", blog.ErrAttr(err))
 				return err
 			}
 
@@ -42,24 +42,24 @@ func processPacket(a *Agent, p *packet.Packet) error {
 		//}
 
 		if err := a.send(hrd); err != nil {
-			logger.Error("Error sending handshake response: %s", logger.ErrAttr(err))
+			blog.Error("Error sending handshake response: %s", blog.ErrAttr(err))
 			return err
 		}
-		logger.Debug("Session handshake",
+		blog.Debug("Session handshake",
 			slog.String("pid", a.PID()), slog.String("addr", a.RemoteAddr().String()))
 
 		a.SetHandshakeData(handshakeData)
 		a.SetStatus(constant.StatusHandshake)
 		err := a.SetSessionData(constant.IPVersionKey, a.IPVersion())
 		if err != nil {
-			logger.Warn("failed to save ip version on session", logger.ErrAttr(err))
+			blog.Warn("failed to save ip version on session", blog.ErrAttr(err))
 		}
 
-		logger.Debug("Successfully saved handshake data")
+		blog.Debug("Successfully saved handshake data")
 
 	case packet.HandshakeAck:
 		a.SetStatus(constant.StatusWorking)
-		logger.Debug("Receive handshake ACK",
+		blog.Debug("Receive handshake ACK",
 			slog.String("pid", a.PID()), slog.String("addr", a.RemoteAddr().String()))
 
 	case packet.Data:

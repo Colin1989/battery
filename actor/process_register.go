@@ -1,10 +1,12 @@
 package actor
 
 import (
-	cmap "github.com/orcaman/concurrent-map"
-	murmur32 "github.com/twmb/murmur3"
+	"log/slog"
 	"sync"
 	"sync/atomic"
+
+	cmap "github.com/orcaman/concurrent-map"
+	murmur32 "github.com/twmb/murmur3"
 )
 
 // ProcessRegistry
@@ -99,6 +101,7 @@ func (pr *ProcessRegistry) Add(process Process, id string) (*PID, bool) {
 
 	if absent {
 		pr.wg.Add(1)
+		pr.ActorSystem.Logger().Debug("Add PID", slog.String("pid", pid.String()))
 	}
 
 	return pid, absent
@@ -112,6 +115,7 @@ func (pr *ProcessRegistry) Remove(pid *PID) {
 		atomic.StoreInt32(&l.dead, 1)
 	}
 	pr.wg.Done()
+	pr.ActorSystem.Logger().Debug("Remove PID", slog.String("pid", pid.String()))
 }
 
 func (pr *ProcessRegistry) Get(pid *PID) (Process, bool) {

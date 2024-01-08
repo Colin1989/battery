@@ -1,4 +1,4 @@
-package logger
+package blog
 
 import (
 	"context"
@@ -18,6 +18,10 @@ var (
 
 func init() {
 	defaultLogger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+func Logger() *slog.Logger {
+	return defaultLogger
 }
 
 func NewLogger(config LogConfig) *slog.Logger {

@@ -3,12 +3,13 @@ package acceptor
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"net"
 	"reflect"
 	"sync/atomic"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 )
 
 type TCPAcceptor struct {
@@ -40,7 +41,7 @@ func (ta *TCPAcceptor) Receive(ctx actor.Context) {
 		atomic.StoreInt32(&ta.running, acceptorStopped)
 		ta.listener.Close()
 	default:
-		logger.Warn("actor unsupported type",
+		blog.Warn("actor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 	}
@@ -71,6 +72,6 @@ func (ta *TCPAcceptor) serve() {
 			Conn:       conn,
 			remoteAddr: conn.RemoteAddr(),
 		}
-		ta.ctx.ActorSystem().Root.Send(ta.ctx.Parent(), actor.WrapEnvelop(connector))
+		ta.ctx.ActorSystem().Root.Send(ta.ctx.Parent(), actor.WrapEnvelope(connector))
 	}
 }

@@ -1,14 +1,19 @@
 package battery
 
 import (
+	"log/slog"
+
 	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/net/codec"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/serializer/json"
 )
 
 func NewApp(opts ...Option) *Application {
-	system := actor.NewActorSystem()
+	system := actor.NewActorSystem(actor.WithLoggerFactory(func(system *actor.ActorSystem) *slog.Logger {
+		return blog.Logger()
+	}))
 	app := &Application{
 		debug:      false,
 		dieChan:    make(chan bool),

@@ -93,7 +93,7 @@ type senderPart interface {
 	Send(pid *PID, envelope *MessageEnvelope)
 
 	// Request sends a message to a given PID and returns a Future
-	Request(pid *PID, message interface{}) (*MessageEnvelope, error)
+	Request(pid *PID, envelope *MessageEnvelope) (*MessageEnvelope, error)
 }
 
 type receiverPart interface {

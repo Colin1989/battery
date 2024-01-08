@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/logger"
 	"log/slog"
 	"reflect"
 	"sync"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/blog"
 )
 
 // addition, subtraction, multiplication and division
@@ -38,20 +39,20 @@ func (a *addActor) Receive(ctx actor.Context) {
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		return
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		return
 	case *addition:
 		result.Value = msg.A + msg.B
 	default:
-		logger.Warn("addActor unsupported type",
+		blog.Warn("addActor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 		return
 	}
-	ctx.Respond(actor.WrapEnvelop(result))
+	ctx.Respond(actor.WrapEnvelope(result))
 }
 
 func (s *subActor) Receive(ctx actor.Context) {
@@ -59,20 +60,20 @@ func (s *subActor) Receive(ctx actor.Context) {
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		return
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		return
 	case *subtraction:
 		result.Value = msg.A - msg.B
 	default:
-		logger.Warn("subActor unsupported type",
+		blog.Warn("subActor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 		return
 	}
-	ctx.Respond(actor.WrapEnvelop(result))
+	ctx.Respond(actor.WrapEnvelope(result))
 }
 
 func (m *mulActor) Receive(ctx actor.Context) {
@@ -80,20 +81,20 @@ func (m *mulActor) Receive(ctx actor.Context) {
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		return
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		return
 	case *multiplication:
 		result.Value = msg.A * msg.B
 	default:
-		logger.Warn("mulActor unsupported type",
+		blog.Warn("mulActor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 		return
 	}
-	ctx.Respond(actor.WrapEnvelop(result))
+	ctx.Respond(actor.WrapEnvelope(result))
 }
 
 func (d *divActor) Receive(ctx actor.Context) {
@@ -101,20 +102,20 @@ func (d *divActor) Receive(ctx actor.Context) {
 	var result out
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		return
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		return
 	case *division:
 		result.Value = msg.A / msg.B
 	default:
-		logger.Warn("divActor unsupported type",
+		blog.Warn("divActor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 		return
 	}
-	ctx.Respond(actor.WrapEnvelop(result))
+	ctx.Respond(actor.WrapEnvelope(result))
 }
 
 func (m *mathActor) Receive(ctx actor.Context) {
@@ -122,10 +123,10 @@ func (m *mathActor) Receive(ctx actor.Context) {
 	var result interface{}
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		logger.Debug("actor started", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor started", slog.String("pid", ctx.Self().String()))
 		return
 	case *actor.Stopped:
-		logger.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
+		blog.Debug("actor stopped", slog.String("pid", ctx.Self().String()))
 		return
 	case *addition:
 		if addPID == nil {
@@ -133,9 +134,9 @@ func (m *mathActor) Receive(ctx actor.Context) {
 				return &addActor{}
 			}))
 		}
-		request, err := ctx.Request(addPID, msg)
+		request, err := ctx.Request(addPID, envelope)
 		if err != nil {
-			logger.Error("Request addition", logger.ErrAttr(err))
+			blog.Error("Request addition", blog.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -145,9 +146,9 @@ func (m *mathActor) Receive(ctx actor.Context) {
 				return &subActor{}
 			}))
 		}
-		request, err := ctx.Request(subPID, msg)
+		request, err := ctx.Request(subPID, envelope)
 		if err != nil {
-			logger.Error("Request subtraction", logger.ErrAttr(err))
+			blog.Error("Request subtraction", blog.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -157,9 +158,9 @@ func (m *mathActor) Receive(ctx actor.Context) {
 				return &mulActor{}
 			}))
 		}
-		request, err := ctx.Request(mulPID, msg)
+		request, err := ctx.Request(mulPID, envelope)
 		if err != nil {
-			logger.Error("Request multiplication", logger.ErrAttr(err))
+			blog.Error("Request multiplication", blog.ErrAttr(err))
 			return
 		}
 		result = request.Message
@@ -169,19 +170,19 @@ func (m *mathActor) Receive(ctx actor.Context) {
 				return &divActor{}
 			}))
 		}
-		request, err := ctx.Request(divPID, msg)
+		request, err := ctx.Request(divPID, envelope)
 		if err != nil {
-			logger.Error("Request division", logger.ErrAttr(err))
+			blog.Error("Request division", blog.ErrAttr(err))
 			return
 		}
 		result = request.Message
 	default:
-		logger.Warn("mathActor unsupported type",
+		blog.Warn("mathActor unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg))
 		return
 	}
-	ctx.Respond(actor.WrapEnvelop(result))
+	ctx.Respond(actor.WrapEnvelope(result))
 }
 
 func requestAddition(m *actor.PID, a, b float64) {
@@ -192,15 +193,15 @@ func requestAddition(m *actor.PID, a, b float64) {
 		A: a,
 		B: b,
 	}
-	result, err := system.Root.Request(m, add)
+	result, err := system.Root.Request(m, actor.WrapEnvelope(add))
 	if err != nil {
-		logger.Error("Request addition", logger.ErrAttr(err))
+		blog.Error("Request addition", blog.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a+b {
 		panic("requestAddition does not equal")
 	}
-	logger.Info(fmt.Sprintf(" Request addition[%v]=[%v] \n", add, result))
+	blog.Info(fmt.Sprintf(" Request addition[%v]=[%v] \n", add, result))
 }
 
 func requestSubtraction(m *actor.PID, a, b float64) {
@@ -211,15 +212,15 @@ func requestSubtraction(m *actor.PID, a, b float64) {
 		A: a,
 		B: b,
 	}
-	result, err := system.Root.Request(m, sub)
+	result, err := system.Root.Request(m, actor.WrapEnvelope(sub))
 	if err != nil {
-		logger.Error("Request subtraction", logger.ErrAttr(err))
+		blog.Error("Request subtraction", blog.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a-b {
 		panic("requestSubtraction does not equal")
 	}
-	logger.Info(fmt.Sprintf(" Request subtraction[%v]=[%v] \n", sub, result))
+	blog.Info(fmt.Sprintf(" Request subtraction[%v]=[%v] \n", sub, result))
 }
 
 func requestMultiplication(m *actor.PID, a, b float64) {
@@ -230,15 +231,15 @@ func requestMultiplication(m *actor.PID, a, b float64) {
 		A: a,
 		B: b,
 	}
-	result, err := system.Root.Request(m, mul)
+	result, err := system.Root.Request(m, actor.WrapEnvelope(mul))
 	if err != nil {
-		logger.Error("Request multiplication", logger.ErrAttr(err))
+		blog.Error("Request multiplication", blog.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a*b {
 		panic("requestMultiplication does not equal")
 	}
-	logger.Info(fmt.Sprintf(" Request multiplication[%v]=[%v] \n", mul, result))
+	blog.Info(fmt.Sprintf(" Request multiplication[%v]=[%v] \n", mul, result))
 }
 
 func requestDivision(m *actor.PID, a, b float64) {
@@ -249,15 +250,15 @@ func requestDivision(m *actor.PID, a, b float64) {
 		A: a,
 		B: b,
 	}
-	result, err := system.Root.Request(m, div)
+	result, err := system.Root.Request(m, actor.WrapEnvelope(div))
 	if err != nil {
-		logger.Error("Request division", logger.ErrAttr(err))
+		blog.Error("Request division", blog.ErrAttr(err))
 		return
 	}
 	if result.Message.(out).Value != a/b {
 		panic("requestDivision does not equal")
 	}
-	logger.Info(fmt.Sprintf(" Request division[%v]=[%v] \n", div, result))
+	blog.Info(fmt.Sprintf(" Request division[%v]=[%v] \n", div, result))
 }
 
 var (

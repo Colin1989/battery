@@ -4,8 +4,6 @@ import (
 	"log/slog"
 	"sync/atomic"
 	"time"
-
-	"github.com/colin1989/battery/logger"
 )
 
 const (
@@ -181,15 +179,12 @@ func (ctx *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
 	ctx.sendUserMessage(pid, envelope)
 }
 
-func (ctx *actorContext) Request(pid *PID, message interface{}) (*MessageEnvelope, error) {
+func (ctx *actorContext) Request(pid *PID, envelope *MessageEnvelope) (*MessageEnvelope, error) {
 	// TODO: timeout 应该作为配置
 	timeout := time.Second * 5
 	future := NewFuture(ctx.actorSystem, timeout)
-	envelope := &MessageEnvelope{
-		Header:  nil,
-		Message: message,
-		Sender:  future.pid,
-	}
+	envelope.Sender = future.pid
+
 	ctx.sendUserMessage(pid, envelope)
 	return future.Result()
 }
@@ -350,13 +345,13 @@ func (ctx *actorContext) InvokeSystemMessage(message SystemMessage) {
 	case *Restart:
 		ctx.handleRestart()
 	default:
-		logger.Warn("unknown system message", slog.Any("message", message))
+		ctx.actorSystem.Logger().Warn("unknown system message", slog.Any("message", message))
 	}
 }
 
 func (ctx *actorContext) handleRootFailure(failure *Failure) {
 	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Envelope)
-	logger.Warn("handleRootFailure", slog.Any("failure", failure))
+	ctx.actorSystem.Logger().Warn("handleRootFailure", slog.Any("failure", failure))
 }
 
 func (ctx *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
@@ -402,7 +397,7 @@ func (ctx *actorContext) handleStop() {
 		return
 	}
 
-	logger.Warn("actor handleStop", slog.String("pid", ctx.self.String()))
+	ctx.actorSystem.Logger().Warn("actor handleStop", slog.String("pid", ctx.self.String()))
 	atomic.StoreInt32(&ctx.state, stateStopping)
 
 	ctx.InvokeUserMessage(stoppingMessage())
@@ -433,7 +428,7 @@ func (ctx *actorContext) handleTerminated(terminated *Terminated) {
 	if ctx.extras != nil {
 		ctx.extras.removeChild(terminated.Who)
 	}
-	ctx.InvokeUserMessage(WrapEnvelop(terminated))
+	ctx.InvokeUserMessage(WrapEnvelope(terminated))
 	ctx.tryRestartOrTerminate()
 }
 
@@ -480,7 +475,7 @@ func (ctx *actorContext) restart() {
 		if !ok {
 			break
 		}
-		ctx.InvokeUserMessage(WrapEnvelop(msg))
+		ctx.InvokeUserMessage(WrapEnvelope(msg))
 	}
 }
 

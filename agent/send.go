@@ -1,11 +1,12 @@
 package agent
 
 import (
-	"github.com/colin1989/battery/logger"
+	"log/slog"
+
+	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/net/packet"
 	"github.com/colin1989/battery/util"
-	"log/slog"
 )
 
 func sendPacket(a *Agent, pendingMessage message.PendingMessage) {
@@ -29,18 +30,18 @@ func sendPacket(a *Agent, pendingMessage message.PendingMessage) {
 
 	em, err := a.app.MessageEncoder().Encode(m)
 	if err != nil {
-		logger.Error("actor send client", slog.String("pid", a.PID()),
-			logger.ErrAttr(err))
+		blog.Error("actor send client", slog.String("pid", a.PID()),
+			blog.ErrAttr(err))
 		return
 	}
 	p, err := a.app.Encoder().Encode(packet.Data, em)
 	if err != nil {
-		logger.Error("actor send client", slog.String("pid", a.PID()),
-			logger.ErrAttr(err))
+		blog.Error("actor send client", slog.String("pid", a.PID()),
+			blog.ErrAttr(err))
 		return
 	}
 	if err := a.send(p); err != nil {
-		logger.Error("actor send client", slog.String("pid", a.PID()),
-			logger.ErrAttr(err))
+		blog.Error("actor send client", slog.String("pid", a.PID()),
+			blog.ErrAttr(err))
 	}
 }
