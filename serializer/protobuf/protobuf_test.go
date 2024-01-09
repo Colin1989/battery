@@ -24,11 +24,10 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/colin1989/battery/errors"
+	"github.com/colin1989/battery/helper"
+	"github.com/colin1989/battery/proto"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/topfreegames/pitaya/v2/constants"
-	"github.com/topfreegames/pitaya/v2/helpers"
-	"github.com/topfreegames/pitaya/v2/protos"
 )
 
 var update = flag.Bool("update", false, "update .golden files")
@@ -44,24 +43,24 @@ func TestMarshal(t *testing.T) {
 		raw interface{}
 		err error
 	}{
-		"test_ok":            {&protos.Response{Data: []byte("data"), Error: &protos.Error{Msg: "error"}}, nil},
-		"test_not_a_message": {"invalid", constants.ErrWrongValueType},
+		"test_ok":            {&proto.Response{Data: []byte("data"), Error: &proto.Error{Msg: "error"}}, nil},
+		"test_not_a_message": {"invalid", errors.ErrWrongValueType},
 	}
 	serializer := NewSerializer()
 
 	for name, table := range marshalTables {
 		t.Run(name, func(t *testing.T) {
 			result, err := serializer.Marshal(table.raw)
-			gp := helpers.FixtureGoldenFileName(t, t.Name())
+			gp := helper.FixtureGoldenFileName(t, t.Name())
 
 			if table.err == nil {
 				assert.NoError(t, err)
 				if *update {
 					t.Log("updating golden file")
-					helpers.WriteFile(t, gp, result)
+					helper.WriteFile(t, gp, result)
 				}
 
-				expected := helpers.ReadFile(t, gp)
+				expected := helper.ReadFile(t, gp)
 				assert.Equal(t, expected, result)
 			} else {
 				assert.Equal(t, table.err, err)
@@ -71,18 +70,18 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestUnmarshal(t *testing.T) {
-	gp := helpers.FixtureGoldenFileName(t, "TestMarshal/test_ok")
-	data := helpers.ReadFile(t, gp)
+	gp := helper.FixtureGoldenFileName(t, "TestMarshal/test_ok")
+	data := helper.ReadFile(t, gp)
 
-	var dest protos.Response
+	var dest proto.Response
 	var unmarshalTables = map[string]struct {
 		expected interface{}
 		data     []byte
 		dest     interface{}
 		err      error
 	}{
-		"test_ok":           {&protos.Response{Data: []byte("data"), Error: &protos.Error{Msg: "error"}}, data, &dest, nil},
-		"test_invalid_dest": {&protos.Response{Data: []byte(nil)}, data, "invalid", constants.ErrWrongValueType},
+		"test_ok":           {&proto.Response{Data: []byte("data"), Error: &proto.Error{Msg: "error"}}, data, &dest, nil},
+		"test_invalid_dest": {&proto.Response{Data: []byte(nil)}, data, "invalid", errors.ErrWrongValueType},
 	}
 	serializer := NewSerializer()
 

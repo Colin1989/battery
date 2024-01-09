@@ -5,9 +5,10 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	message "github.com/topfreegames/pitaya/v2/conn/message"
 	reflect "reflect"
+
+	"github.com/colin1989/battery/net/message"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockEncoder is a mock of Encoder interface

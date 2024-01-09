@@ -84,9 +84,9 @@ func processPacket(a *Agent, p *packet.Packet) error {
 
 func processMessage(a *Agent, msg *message.Message) {
 
-	if msg.Route.SvType == "" {
-		//r.SvType = h.server.Type
-	}
+	//if msg.Route.SvType == "" {
+	//r.SvType = h.server.Type
+	//}
 
 	// TODO 判断是否为 remote
 	system := a.ctx.ActorSystem()

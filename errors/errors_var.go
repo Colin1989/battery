@@ -27,11 +27,7 @@ var (
 	ErrNotifyOnRequest                = Errors("tried to notify a request route")
 	ErrRequestOnNotify                = Errors("tried to request a notify route")
 	ErrReplyShouldBeNotNull           = Errors("reply must not be null")
-)
-
-var (
-	// ErrRouteFieldCantEmpty error
-	ErrRouteFieldCantEmpty = Errors("route field can not be empty")
-	// ErrInvalidRoute error
-	ErrInvalidRoute = Errors("invalid route")
+	ErrWrongValueType                 = Errors("protobuf: convert on wrong type value")
+	ErrRouteFieldCantEmpty            = Errors("route field can not be empty")
+	ErrInvalidRoute                   = Errors("invalid route")
 )

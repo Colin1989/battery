@@ -3,10 +3,36 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 )
+
+// FixtureGoldenFileName returns the golden file name on fixtures path
+func FixtureGoldenFileName(t *testing.T, name string) string {
+	t.Helper()
+	return filepath.Join("fixtures", name+".golden")
+}
+
+// WriteFile test helper
+func WriteFile(t *testing.T, filepath string, bytes []byte) {
+	t.Helper()
+	if err := ioutil.WriteFile(filepath, bytes, 0644); err != nil {
+		t.Fatalf("failed writing file: %s", err)
+	}
+}
+
+// ReadFile test helper
+func ReadFile(t *testing.T, filepath string) []byte {
+	t.Helper()
+	b, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		t.Fatalf("failed reading file: %s", err)
+	}
+	return b
+}
 
 func vetExtras(extras []interface{}) (bool, string) {
 	for i, extra := range extras {

@@ -29,21 +29,19 @@ import (
 
 // Route struct
 type Route struct {
-	SvType  string
+	//SvType  string
 	Service string
 	Method  string
 }
 
 // NewRoute creates a new route
-func NewRoute(server, service, method string) Route {
-	return Route{server, service, method}
+func NewRoute(service, method string) Route {
+	return Route{service, method}
 }
 
 // String transforms the route into a string
 func (r Route) String() string {
-	if r.SvType != "" {
-		return fmt.Sprintf("%s.%s.%s", r.SvType, r.Service, r.Method)
-	} else if r.Service != "" {
+	if r.Service != "" {
 		return fmt.Sprintf("%s.%s", r.Service, r.Method)
 	} else {
 		return r.Method
@@ -64,12 +62,10 @@ func DecodeRoute(route string) (Route, error) {
 		}
 	}
 	switch len(r) {
-	case 3:
-		return NewRoute(r[0], r[1], r[2]), nil
 	case 2:
-		return NewRoute("", r[0], r[1]), nil
+		return NewRoute(r[0], r[1]), nil
 	case 1:
-		return NewRoute("", "", r[0]), nil
+		return NewRoute("", r[0]), nil
 	default:
 		return Route{}, errors.ErrInvalidRoute
 	}

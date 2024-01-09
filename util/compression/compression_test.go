@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/colin1989/battery/helper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/topfreegames/pitaya/v2/helpers"
 )
 
 var update = flag.Bool("update", false, "update .golden files")
@@ -29,9 +29,9 @@ func TestCompressionDeflate(t *testing.T) {
 			gp := filepath.Join("fixtures", in.name+".golden")
 			if *update {
 				t.Log("updating golden file")
-				helpers.WriteFile(t, gp, b)
+				helper.WriteFile(t, gp, b)
 			}
-			expected := helpers.ReadFile(t, gp)
+			expected := helper.ReadFile(t, gp)
 
 			assert.Equal(t, expected, b)
 		})
@@ -42,7 +42,7 @@ func TestCompressionInflate(t *testing.T) {
 	for _, in := range ins {
 		t.Run(in.name, func(t *testing.T) {
 			inputFile := filepath.Join("fixtures", in.name+".golden")
-			input := helpers.ReadFile(t, inputFile)
+			input := helper.ReadFile(t, inputFile)
 
 			result, err := InflateData(input)
 			require.NoError(t, err)
