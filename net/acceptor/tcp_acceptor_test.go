@@ -2,14 +2,16 @@ package acceptor
 
 import (
 	"fmt"
-	"github.com/colin1989/battery/actor"
-	"github.com/colin1989/battery/constant"
-	"github.com/colin1989/battery/helper"
-	"github.com/colin1989/battery/net/packet"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/colin1989/battery/net/packet"
+
+	"github.com/colin1989/battery/actor"
+	"github.com/colin1989/battery/errors"
+	"github.com/colin1989/battery/helper"
+	"github.com/stretchr/testify/assert"
 )
 
 var tcpAcceptorTables = []struct {
@@ -21,9 +23,9 @@ var tcpAcceptorTables = []struct {
 
 	{"test_1", "0.0.0.0:1234", []string{"./fixtures/server.crt", "./fixtures/server.key"}, nil},
 	{"test_2", "0.0.0.0:1235", []string{}, nil},
-	{"test_3", "127.0.0.1:1236", []string{"wqd"}, constant.ErrIncorrectNumberOfCertificates},
-	{"test_4", "127.0.0.1:1237", []string{"wqd", "wqdqwd"}, fmt.Errorf("%w: %v", constant.ErrInvalidCertificates, "open wqd: The system cannot find the file specified.")},
-	{"test_5", "127.0.0.1:1238", []string{"wqd", "wqdqwd", "wqdqdqwd"}, constant.ErrIncorrectNumberOfCertificates},
+	{"test_3", "127.0.0.1:1236", []string{"wqd"}, errors.ErrIncorrectNumberOfCertificates},
+	{"test_4", "127.0.0.1:1237", []string{"wqd", "wqdqwd"}, fmt.Errorf("%w: %v", errors.ErrInvalidCertificates, "open wqd: The system cannot find the file specified.")},
+	{"test_5", "127.0.0.1:1238", []string{"wqd", "wqdqwd", "wqdqdqwd"}, errors.ErrIncorrectNumberOfCertificates},
 }
 
 var (
@@ -31,6 +33,8 @@ var (
 )
 
 func TestNewTCPAcceptor(t *testing.T) {
+	t.Parallel()
+
 	for _, table := range tcpAcceptorTables {
 		t.Run(table.name, func(t *testing.T) {
 			if table.panicErr != nil {
@@ -38,14 +42,14 @@ func TestNewTCPAcceptor(t *testing.T) {
 					props := actor.PropsFromProducer(func() actor.Actor {
 						return NewTCPAcceptor(table.addr, table.certs...)
 					})
-					system.Root.Spawn(props)
+					gateCtx.Spawn(props)
 				})
 			} else {
 				assert.NotPanics(t, func() {
 					props := actor.PropsFromProducer(func() actor.Actor {
 						return NewTCPAcceptor(table.addr, table.certs...)
 					})
-					tcpPID = system.Root.Spawn(props)
+					tcpPID = gateCtx.Spawn(props)
 				})
 				assert.NotNil(t, tcpPID)
 
@@ -80,8 +84,9 @@ func TestGetNextMessage(t *testing.T) {
 				props := actor.PropsFromProducer(func() actor.Actor {
 					return NewTCPAcceptor(table.addr)
 				})
-				tcpPID = system.Root.Spawn(props)
+				tcpPID = gateCtx.Spawn(props)
 			})
+			time.Sleep(100 * time.Millisecond)
 			assert.NotNil(t, tcpPID)
 
 			var conn net.Conn
@@ -97,7 +102,7 @@ func TestGetNextMessage(t *testing.T) {
 			assert.Equal(t, len(table.data), write)
 
 			time.Sleep(time.Second * 1)
-			request, err := system.Root.Request(agentPid, &requestMsg{})
+			request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 			assert.NoError(t, err)
 			if table.err != nil {
 				assert.EqualError(t, table.err, request.Message.(error).Error())
@@ -113,7 +118,7 @@ func TestGetNextMessageTwoMessagesInBuffer(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewTCPAcceptor(addr)
 	})
-	tcpPID = system.Root.Spawn(props)
+	tcpPID = gateCtx.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -131,10 +136,10 @@ func TestGetNextMessageTwoMessagesInBuffer(t *testing.T) {
 	assert.Equal(t, len(buffer), write)
 
 	time.Sleep(time.Second * 1)
-	request, err := system.Root.Request(agentPid, &requestMsg{})
+	request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.NoError(t, err)
 	assert.Equal(t, msg1, request.Message)
-	request, err = system.Root.Request(agentPid, &requestMsg{})
+	request, err = system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.NoError(t, err)
 	assert.Equal(t, msg2, request.Message)
 }
@@ -144,7 +149,7 @@ func TestGetNextMessageEOF(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewTCPAcceptor(addr)
 	})
-	tcpPID = system.Root.Spawn(props)
+	tcpPID = gateCtx.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -165,9 +170,9 @@ func TestGetNextMessageEOF(t *testing.T) {
 	}()
 
 	time.Sleep(time.Millisecond * 200)
-	request, err := system.Root.Request(agentPid, &requestMsg{})
+	request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.NoError(t, err)
-	assert.EqualError(t, constant.ErrReceivedMsgSmallerThanExpected, request.Message.(error).Error())
+	assert.EqualError(t, errors.ErrReceivedMsgSmallerThanExpected, request.Message.(error).Error())
 }
 
 func TestGetNextMessageEmptyEOF(t *testing.T) {
@@ -175,7 +180,7 @@ func TestGetNextMessageEmptyEOF(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewTCPAcceptor(addr)
 	})
-	tcpPID = system.Root.Spawn(props)
+	tcpPID = gateCtx.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -192,9 +197,9 @@ func TestGetNextMessageEmptyEOF(t *testing.T) {
 	}()
 
 	time.Sleep(time.Millisecond * 200)
-	request, err := system.Root.Request(agentPid, &requestMsg{})
+	request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.NoError(t, err)
-	assert.EqualError(t, constant.ErrConnectionClosed, request.Message.(error).Error())
+	assert.EqualError(t, errors.ErrConnectionClosed, request.Message.(error).Error())
 }
 
 func TestGetNextMessageInParts(t *testing.T) {
@@ -202,7 +207,7 @@ func TestGetNextMessageInParts(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewTCPAcceptor(addr)
 	})
-	tcpPID = system.Root.Spawn(props)
+	tcpPID = gateCtx.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -225,7 +230,7 @@ func TestGetNextMessageInParts(t *testing.T) {
 	}()
 
 	time.Sleep(time.Millisecond * 200)
-	request, err := system.Root.Request(agentPid, &requestMsg{})
+	request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.NoError(t, err)
 	assert.Equal(t, append(part1, part2...), request.Message)
 }
@@ -235,7 +240,7 @@ func TestTCPAcceptorCloseConn(t *testing.T) {
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return NewTCPAcceptor(addr)
 	})
-	tcpPID = system.Root.Spawn(props)
+	tcpPID = gateCtx.Spawn(props)
 
 	var conn net.Conn
 	var err error
@@ -250,13 +255,13 @@ func TestTCPAcceptorCloseConn(t *testing.T) {
 	system.Root.Poison(agentPid)
 
 	time.Sleep(time.Second * 1)
-	request, err := system.Root.Request(agentPid, &requestMsg{})
+	request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	assert.Error(t, err)
 	_ = request
 
 	time.Sleep(time.Second * 1)
 	//assert.Equal(t, msg1, request.Message)
-	//request, err = system.Root.Request(agentPid, &requestMsg{})
+	//request, err = system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 	//assert.NoError(t, err)
 	//assert.Equal(t, msg2, request.Message)
 }

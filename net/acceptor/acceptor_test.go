@@ -3,18 +3,32 @@ package acceptor
 import (
 	"fmt"
 
+	"github.com/colin1989/battery/net/codec"
+	"github.com/colin1989/battery/net/message"
+	"github.com/colin1989/battery/serializer/json"
+
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
 	"github.com/colin1989/battery/facade"
 )
 
 var (
+	tapp = &testApp{
+		messageEncoder: message.NewMessagesEncoder(true),
+		decoder:        codec.NewPomeloPacketDecoder(),
+		encoder:        codec.NewPomeloPacketEncoder(),
+		serializer:     json.NewSerializer(),
+	}
 	system = actor.NewActorSystem()
 	props  = actor.PropsFromProducer(func() actor.Actor {
-		return &TAgentManager{agents: actor.PIDSet{}}
+		return &testGate{
+			app:    tapp,
+			agents: actor.PIDSet{},
+		}
 	})
-	agentManagerPID, _ = system.Root.SpawnNamed(props, constant.Gate)
-	agentPid           *actor.PID
+	gate, _  = system.Root.SpawnNamed(props, constant.Gate)
+	gateCtx  actor.Context
+	agentPid *actor.PID
 )
 
 type tAgent struct {
@@ -60,38 +74,61 @@ func (ta *tAgent) read(ctx actor.Context) {
 			fmt.Printf("pid[%v] conn receive err[%v]  \n", ctx.Self().String(), err)
 			ctx.Send(ctx.Self(), actor.WrapEnvelope(err))
 			//ctx.Poison(ctx.Self())
-			return
-			//continue
+			//return
+			continue
 		}
 		ctx.Send(ctx.Self(), actor.WrapEnvelope(msg))
 	}
 }
 
-type TAgentManager struct {
+type testApp struct {
+	messageEncoder facade.MessageEncoder
+	decoder        facade.PacketDecoder
+	encoder        facade.PacketEncoder
+	serializer     facade.Serializer
+}
+
+func (t *testApp) MessageEncoder() facade.MessageEncoder {
+	return t.messageEncoder
+}
+
+func (t *testApp) Decoder() facade.PacketDecoder {
+	return t.decoder
+}
+
+func (t *testApp) Encoder() facade.PacketEncoder {
+	return t.encoder
+}
+
+func (t *testApp) Serializer() facade.Serializer {
+	return t.serializer
+}
+
+type testGate struct {
 	agents actor.PIDSet
+	app    facade.App
 }
 
 type ReqChildCount struct {
 }
 
-func (am *TAgentManager) Receive(ctx actor.Context) {
+func (tg *testGate) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		fmt.Println("actor started TAgentManager")
+		fmt.Println("actor started testGate")
+		gateCtx = ctx
 	case *actor.Stopped:
-		fmt.Println("actor stopped TAgentManager")
-	case *messages.NewAgent:
+		fmt.Println("actor stopped testGate")
+	case facade.Connector:
+		conn := msg
 		props := actor.PropsFromProducer(func() actor.Actor {
-			return &tAgent{
-				conn:    msg.Conn,
-				message: nil,
-			}
+			return &tAgent{conn: conn}
 		})
 		ctx.SpawnPrefix(props, constant.AgentPrefix)
 	case *ReqChildCount:
 		ctx.Respond(actor.WrapEnvelope(len(ctx.Children())))
 	default:
-		fmt.Printf("TAgentManager unsupported type %T msg : %+v \n", msg, msg)
+		fmt.Printf("testGate unsupported type %T msg : %+v \n", msg, msg)
 	}
 }

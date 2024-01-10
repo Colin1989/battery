@@ -3,6 +3,8 @@ package battery
 import (
 	"log/slog"
 
+	"github.com/colin1989/battery/errors"
+
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/net/codec"
@@ -36,4 +38,9 @@ func NewApp(opts ...Option) *Application {
 	}
 
 	return app
+}
+
+// Error creates a new error with a code, message and metadata
+func Error(err error, code string, metadata ...map[string]string) *errors.Error {
+	return errors.NewError(err, code, metadata...)
 }

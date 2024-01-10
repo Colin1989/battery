@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/colin1989/battery/proto";
+option go_package = "github.com/colin1989/battery/protos";
 
 message Session {
   uint32 MId = 1;                 // message id build by client

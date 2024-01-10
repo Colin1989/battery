@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/colin1989/battery/proto";
+option go_package = "github.com/colin1989/battery/protos";
 
 enum MsgType {
   MsgRequest = 0;

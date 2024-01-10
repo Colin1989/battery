@@ -7,8 +7,8 @@ import (
 	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/net/message"
-	"github.com/colin1989/battery/proto"
-	"github.com/colin1989/battery/serializer"
+	"github.com/colin1989/battery/protos"
+	serialize "github.com/colin1989/battery/serializer"
 	"github.com/colin1989/battery/util"
 )
 
@@ -16,7 +16,7 @@ func getMsgType(msgTypeIface interface{}) (message.Type, error) {
 	var msgType message.Type
 	if val, ok := msgTypeIface.(message.Type); ok {
 		msgType = val
-	} else if val, ok := msgTypeIface.(proto.MsgType); ok {
+	} else if val, ok := msgTypeIface.(protos.MsgType); ok {
 		msgType = ConvertProtoToMessageType(val)
 	} else {
 		return msgType, errors.ErrInvalidMsg
@@ -42,12 +42,12 @@ func (h *Handler) ValidateMessageType(msgType message.Type) (exitOnError bool, e
 }
 
 // ConvertProtoToMessageType converts a protos.MsgType to a message.Type
-func ConvertProtoToMessageType(protoMsgType proto.MsgType) message.Type {
+func ConvertProtoToMessageType(protoMsgType protos.MsgType) message.Type {
 	var msgType message.Type
 	switch protoMsgType {
-	case proto.MsgType_MsgRequest:
+	case protos.MsgType_MsgRequest:
 		msgType = message.Request
-	case proto.MsgType_MsgNotify:
+	case protos.MsgType_MsgNotify:
 		msgType = message.Notify
 	}
 	return msgType

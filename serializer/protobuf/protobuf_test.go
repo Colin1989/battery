@@ -26,7 +26,7 @@ import (
 
 	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/helper"
-	"github.com/colin1989/battery/proto"
+	"github.com/colin1989/battery/protos"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,7 +43,7 @@ func TestMarshal(t *testing.T) {
 		raw interface{}
 		err error
 	}{
-		"test_ok":            {&proto.Response{Data: []byte("data"), Error: &proto.Error{Msg: "error"}}, nil},
+		"test_ok":            {&protos.Response{Data: []byte("data"), Error: &protos.Error{Msg: "error"}}, nil},
 		"test_not_a_message": {"invalid", errors.ErrWrongValueType},
 	}
 	serializer := NewSerializer()
@@ -73,15 +73,15 @@ func TestUnmarshal(t *testing.T) {
 	gp := helper.FixtureGoldenFileName(t, "TestMarshal/test_ok")
 	data := helper.ReadFile(t, gp)
 
-	var dest proto.Response
+	var dest protos.Response
 	var unmarshalTables = map[string]struct {
 		expected interface{}
 		data     []byte
 		dest     interface{}
 		err      error
 	}{
-		"test_ok":           {&proto.Response{Data: []byte("data"), Error: &proto.Error{Msg: "error"}}, data, &dest, nil},
-		"test_invalid_dest": {&proto.Response{Data: []byte(nil)}, data, "invalid", errors.ErrWrongValueType},
+		"test_ok":           {&protos.Response{Data: []byte("data"), Error: &protos.Error{Msg: "error"}}, data, &dest, nil},
+		"test_invalid_dest": {&protos.Response{Data: []byte(nil)}, data, "invalid", errors.ErrWrongValueType},
 	}
 	serializer := NewSerializer()
 

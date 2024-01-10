@@ -3,7 +3,7 @@ package util
 import (
 	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/facade"
-	"github.com/colin1989/battery/proto"
+	"github.com/colin1989/battery/protos"
 )
 
 // SerializeOrRaw serializes the interface if its not an array of bytes already
@@ -27,7 +27,7 @@ func GetErrorPayload(serializer facade.Serializer, err error) ([]byte, error) {
 		code = val.Code
 		metadata = val.Metadata
 	}
-	errPayload := &proto.Error{
+	errPayload := &protos.Error{
 		Code: code,
 		Msg:  msg,
 	}

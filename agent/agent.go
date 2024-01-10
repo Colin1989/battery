@@ -13,7 +13,7 @@ import (
 	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/message"
 	"github.com/colin1989/battery/net/packet"
-	"github.com/colin1989/battery/proto"
+	"github.com/colin1989/battery/protos"
 )
 
 type pendingWrite struct {
@@ -32,7 +32,7 @@ type Agent struct {
 
 	encodedData   []byte // session data encoded as a byte array
 	state         int32  // current agent state
-	session       *proto.Session
+	session       *protos.Session
 	handshakeData *packet.HandshakeData // handshake data received by the client
 }
 
@@ -51,7 +51,7 @@ func NewAgent(conn facade.Connector, app facade.App) actor.Actor {
 		chSend:  make(chan pendingWrite),
 		chDie:   make(chan struct{}),
 		app:     app,
-		session: &proto.Session{Data: make(map[string]string)},
+		session: &protos.Session{Data: make(map[string]string)},
 	}
 }
 

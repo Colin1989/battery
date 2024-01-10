@@ -3,14 +3,16 @@ package acceptor
 import (
 	"crypto/tls"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/colin1989/battery/actor"
 	"github.com/colin1989/battery/constant"
+	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/helper"
 	"github.com/colin1989/battery/net/packet"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var wsAcceptorTables = []struct {
@@ -23,8 +25,8 @@ var wsAcceptorTables = []struct {
 	// TODO change to allocatable ports
 	{"test_1", "0.0.0.0:0", []byte{0x01, 0x02}, []string{"./fixtures/server.crt", "./fixtures/server.key"}, nil},
 	{"test_2", "127.0.0.1:0", []byte{0x00}, []string{"./fixtures/server.crt", "./fixtures/server.key"}, nil},
-	{"test_3", "0.0.0.0:0", []byte{0x00}, []string{"wqodij"}, constant.ErrIncorrectNumberOfCertificates},
-	{"test_4", "0.0.0.0:0", []byte{0x00}, []string{"wqodij", "qwdo", "wod"}, constant.ErrIncorrectNumberOfCertificates},
+	{"test_3", "0.0.0.0:0", []byte{0x00}, []string{"wqodij"}, errors.ErrIncorrectNumberOfCertificates},
+	{"test_4", "0.0.0.0:0", []byte{0x00}, []string{"wqodij", "qwdo", "wod"}, errors.ErrIncorrectNumberOfCertificates},
 	{"test_5", "0.0.0.0:0", []byte{0x00}, []string{}, nil},
 }
 
@@ -39,13 +41,13 @@ func TestNewWsAcceptor(t *testing.T) {
 			var wsPID *actor.PID
 			if table.panicErr != nil {
 				assert.PanicsWithValue(t, table.panicErr, func() {
-					wsPID = system.Root.SpawnPrefix(actor.PropsFromProducer(func() actor.Actor {
+					wsPID = gateCtx.SpawnPrefix(actor.PropsFromProducer(func() actor.Actor {
 						return NewWSAcceptor(table.addr, table.certs...)
 					}), constant.WSAcceptor)
 				})
 			} else {
 				assert.NotPanics(t, func() {
-					wsPID = system.Root.SpawnPrefix(actor.PropsFromProducer(func() actor.Actor {
+					wsPID = gateCtx.SpawnPrefix(actor.PropsFromProducer(func() actor.Actor {
 						return NewWSAcceptor(table.addr, table.certs...)
 					}), constant.WSAcceptor)
 				})
@@ -66,7 +68,7 @@ func TestWSAcceptor_GetAddr(t *testing.T) {
 				w = NewWSAcceptor(table.addr)
 				return w
 			})
-			wsPID = system.Root.SpawnPrefix(props, constant.WSAcceptor)
+			wsPID = gateCtx.SpawnPrefix(props, constant.WSAcceptor)
 			wsActors = append(wsActors, wsPID)
 			// will return empty string because acceptor is not listening
 			assert.Empty(t, w.GetAddr())
@@ -78,10 +80,10 @@ func TestWSAcceptor_GetAddr(t *testing.T) {
 
 	time.Sleep(time.Second)
 	assert.NotNil(t, agentPid)
-	respCount, err := system.Root.Request(agentManagerPID, &ReqChildCount{})
+	respCount, err := system.Root.Request(gate, actor.WrapEnvelope(&ReqChildCount{}))
 	assert.NoError(t, err)
 	assert.Equal(t, len(wsAcceptorTables), respCount.Message.(int))
-	system.Root.Poison(agentManagerPID)
+	system.Root.Poison(gate)
 
 	for _, wsActor := range wsActors {
 		system.Root.Poison(wsActor)
@@ -97,7 +99,7 @@ func TestWSNextMessage(t *testing.T) {
 	}{
 		{"invalid_header", []byte{0x00, 0x00, 0x00, 0x00}, packet.ErrWrongPomeloPacketType},
 		{"valid_message", []byte{0x02, 0x00, 0x00, 0x01, 0x00}, nil},
-		{"invalid_message", []byte{0x02, 0x00, 0x00, 0x02, 0x00}, constant.ErrReceivedMsgSmallerThanExpected},
+		{"invalid_message", []byte{0x02, 0x00, 0x00, 0x02, 0x00}, errors.ErrReceivedMsgSmallerThanExpected},
 		{"invalid_header", []byte{0x02, 0x00}, packet.ErrInvalidPomeloHeader},
 	}
 	t.Parallel()
@@ -109,7 +111,7 @@ func TestWSNextMessage(t *testing.T) {
 				w = NewWSAcceptor("0.0.0.0:0")
 				return w
 			})
-			wsPID = system.Root.SpawnPrefix(props, constant.WSAcceptor)
+			wsPID = gateCtx.SpawnPrefix(props, constant.WSAcceptor)
 			wsActors = append(wsActors, wsPID)
 			// will return empty string because acceptor is not listening
 			assert.Empty(t, w.GetAddr())
@@ -118,7 +120,7 @@ func TestWSNextMessage(t *testing.T) {
 			assert.NotEmpty(t, w.GetAddr())
 			time.Sleep(time.Millisecond * 500)
 
-			request, err := system.Root.Request(agentPid, &requestMsg{})
+			request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 			assert.NoError(t, err)
 			if table.err != nil {
 				assert.Equal(t, table.err, request.Message.(error))
@@ -139,7 +141,7 @@ func TestWSConnLocalAddrAndRemoteAddr(t *testing.T) {
 				w = NewWSAcceptor("0.0.0.0:0")
 				return w
 			})
-			wsPID = system.Root.SpawnPrefix(props, constant.WSAcceptor)
+			wsPID = gateCtx.SpawnPrefix(props, constant.WSAcceptor)
 			wsActors = append(wsActors, wsPID)
 			// will return empty string because acceptor is not listening
 			assert.Empty(t, w.GetAddr())
@@ -148,12 +150,13 @@ func TestWSConnLocalAddrAndRemoteAddr(t *testing.T) {
 			assert.NotEmpty(t, w.GetAddr())
 			time.Sleep(time.Millisecond * 500)
 
-			request, err := system.Root.Request(agentPid, &localAddr{})
+			request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&localAddr{}))
 			assert.NoError(t, err)
+			assert.NotNil(t, request)
 			assert.NotNil(t, request.Message)
 			assert.NotEmpty(t, request.Message)
 
-			request, err = system.Root.Request(agentPid, &remoteAddr{})
+			request, err = system.Root.Request(agentPid, actor.WrapEnvelope(&remoteAddr{}))
 			assert.NoError(t, err)
 			assert.NotNil(t, request.Message)
 			assert.NotEmpty(t, request.Message)
@@ -195,7 +198,7 @@ func TestWSGetNextMessageSequentially(t *testing.T) {
 		},
 		{
 			write: []byte{0x02, 0x00, 0x00, 0x04},
-			err:   constant.ErrReceivedMsgSmallerThanExpected,
+			err:   errors.ErrReceivedMsgSmallerThanExpected,
 		},
 		{
 			write: []byte{0x00, 0x00, 0x00},
@@ -213,7 +216,7 @@ func TestWSGetNextMessageSequentially(t *testing.T) {
 		ws = NewWSAcceptor("0.0.0.0:0")
 		return ws
 	})
-	wsPID = system.Root.SpawnPrefix(props, constant.WSAcceptor)
+	wsPID = gateCtx.SpawnPrefix(props, constant.WSAcceptor)
 	wsActors = append(wsActors, wsPID)
 
 	var conn *websocket.Conn
@@ -232,8 +235,9 @@ func TestWSGetNextMessageSequentially(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 	for _, table := range testTables {
-		request, err := system.Root.Request(agentPid, &requestMsg{})
+		request, err := system.Root.Request(agentPid, actor.WrapEnvelope(&requestMsg{}))
 		assert.NoError(t, err)
+		assert.NotNil(t, request)
 		if table.err != nil {
 			assert.EqualError(t, request.Message.(error), table.err.Error())
 		} else {
