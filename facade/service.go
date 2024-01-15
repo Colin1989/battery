@@ -14,6 +14,7 @@ type Acceptors struct {
 type Service interface {
 	//actor.Actor
 	Name() string
+	App() App
 	OnStart(ctx actor.Context)
 	OnDestroy(ctx actor.Context)
 }

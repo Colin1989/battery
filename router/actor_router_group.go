@@ -13,12 +13,12 @@ type groupRouterActor struct {
 	wg     *sync.WaitGroup
 }
 
-func (a *groupRouterActor) Receive(context actor.Context) {
-	envelope := context.Envelope()
+func (a *groupRouterActor) Receive(ctx actor.Context) {
+	envelope := ctx.Envelope()
 	message := envelope.Message
 	switch m := message.(type) {
 	case *actor.Started:
-		a.config.OnStarted(context, a.props, a.state)
+		a.config.OnStarted(ctx, a.props, a.state)
 		a.wg.Done()
 
 	case *AddRoutee:
@@ -26,7 +26,7 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 		if r.Contains(m.PID) {
 			return
 		}
-		context.Watch(m.PID)
+		ctx.Watch(m.PID)
 		r.Add(m.PID)
 		a.state.SetRoutees(r)
 
@@ -36,17 +36,15 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 			return
 		}
 
-		context.Unwatch(m.PID)
+		ctx.Unwatch(m.PID)
 		r.Remove(m.PID)
 		a.state.SetRoutees(r)
 
 	case *BroadcastMessage:
+		r := a.state.GetRoutees()
 		msg := m.Message
-		//sender := context.Sender()
-		//m.Message.Sender = context.Sender()
-		a.state.GetRoutees().ForEach(func(i int, pid *actor.PID) {
-			//context.Send(pid, actor.WrapEnvelopWithSender(msg, sender))
-			context.Send(pid, msg)
+		r.ForEach(func(i int, pid *actor.PID) {
+			ctx.Send(pid, msg)
 		})
 
 	case *GetRoutees:
@@ -56,10 +54,15 @@ func (a *groupRouterActor) Receive(context actor.Context) {
 			routees[i] = pid
 		})
 
-		context.Respond(actor.WrapEnvelope(&Routees{PIDs: routees}))
+		ctx.Respond(actor.WrapEnvelope(&Routees{PIDs: routees}))
 	case *actor.Terminated:
 		r := a.state.GetRoutees()
 		if r.Remove(m.Who) {
+			a.state.SetRoutees(r)
+		}
+	case *actor.DeadLetterResponse:
+		r := a.state.GetRoutees()
+		if r.Remove(m.Target) {
 			a.state.SetRoutees(r)
 		}
 	}

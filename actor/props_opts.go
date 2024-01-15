@@ -73,3 +73,9 @@ func WithFunc(f ReceiveFunc) PropsOption {
 		props.producer = func(system *ActorSystem) Actor { return f }
 	}
 }
+
+func WithMailbox(mailbox MailboxProducer) PropsOption {
+	return func(props *Props) {
+		props.mailboxProducer = mailbox
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/colin1989/battery/actor"
@@ -74,6 +75,12 @@ func (a *Agent) Receive(ctx actor.Context) {
 		sendPacket(a, msg)
 	//case *actor.ReceiveTimeout:
 	//	ctx.Stop(ctx.Self())
+	case *message.BroadcastMessage:
+		if err := a.send(msg.P); err != nil {
+			blog.Error("actor send client", slog.String("pid", a.PID()),
+				blog.ErrAttr(err))
+
+		}
 	case *packet.Packet:
 		blog.Debug("actor receive packet", slog.String("pid", ctx.Self().String()),
 			slog.String("msg", msg.String()))
@@ -120,14 +127,24 @@ func (a *Agent) SetLastAt() {
 }
 
 func (a *Agent) Close() {
+	if atomic.LoadInt32(&a.state) == constant.StatusClosed {
+		return
+	}
+	atomic.StoreInt32(&a.state, constant.StatusClosed)
 	close(a.chDie)
 	a.conn.Close()
+	a.ctx.Poison(a.ctx.Self())
 }
 
 func (a *Agent) send(data []byte) error {
-	a.chSend <- pendingWrite{
+	pWrite := pendingWrite{
 		data: data,
 		err:  nil,
+	}
+	// chSend is never closed so we need this to don't block if agent is already closed
+	select {
+	case a.chSend <- pWrite:
+	case <-a.chDie:
 	}
 	return nil
 }
@@ -139,7 +156,7 @@ func (a *Agent) run() {
 
 func (a *Agent) write() {
 	defer func() {
-		close(a.chSend)
+		a.Close()
 	}()
 
 	for {
@@ -163,7 +180,7 @@ func (a *Agent) read() {
 		if r := recover(); r != nil {
 			blog.CallerStack(r.(error), 1)
 		}
-		a.ctx.Poison(a.ctx.Self())
+		a.Close()
 	}()
 
 	for {

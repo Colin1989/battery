@@ -1,6 +1,8 @@
 package router
 
-import "github.com/colin1989/battery/actor"
+import (
+	"github.com/colin1989/battery/actor"
+)
 
 type broadcastGroupRouter struct {
 	GroupRouter
@@ -40,7 +42,11 @@ func NewBroadcastPool(size int, opts ...actor.PropsOption) *actor.Props {
 }
 
 func NewBroadcastGroup(routees ...*actor.PID) *actor.Props {
-	return (&actor.Props{}).Configure(actor.WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})))
+	return (&actor.Props{}).
+		Configure(
+			actor.WithSpawnFunc(spawner(&broadcastGroupRouter{GroupRouter{Routees: actor.NewPIDSet(routees...)}})),
+			actor.WithMailbox(actor.UnboundedLockfree()),
+		)
 }
 
 func (config *broadcastPoolRouter) CreateRouterState() State {

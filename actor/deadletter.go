@@ -35,6 +35,21 @@ func newDeadLetter(actorSystem *ActorSystem) *deadLetter {
 		}
 	})
 
+	// this subscriber may not be deactivated.
+	// it ensures that Watch commands that reach a stopped actor gets a Terminated message back.
+	// This can happen if one actor tries to Watch a PID, while another thread sends a Stop message.
+	actorSystem.EventStream.Subscribe(func(msg EventMessage) {
+		if dlEvent, ok := msg.(*DeadLetterEvent); ok {
+			if m, ok := dlEvent.Message.(*Watch); ok {
+				// we know that this is a local actor since we get it on our own event stream, thus the address is not terminated
+				m.Watcher.sendSystemMessage(actorSystem, &Terminated{
+					Who: dlEvent.PID,
+					Why: TerminatedReason_NotFound,
+				})
+			}
+		}
+	})
+
 	return dl
 }
 

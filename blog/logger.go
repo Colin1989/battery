@@ -33,7 +33,8 @@ func NewLogger(config LogConfig) *slog.Logger {
 		Compress:   true,              // 是否压缩/归档旧文件
 		LocalTime:  true,              // 使用本地时间创建时间戳
 	}
-	defaultLogger = slog.New(slog.NewJSONHandler(io.MultiWriter(log, os.Stderr), &slog.HandlerOptions{}))
+	defaultLogger = slog.New(slog.NewJSONHandler(io.MultiWriter(log), &slog.HandlerOptions{Level: config}))
+	//defaultLogger = slog.New(slog.NewJSONHandler(io.MultiWriter(log, os.Stderr), &slog.HandlerOptions{Level: config}))
 	if len(nodeId) != 0 {
 		defaultLogger = defaultLogger.WithGroup(nodeId)
 	}

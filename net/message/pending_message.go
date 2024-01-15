@@ -7,3 +7,7 @@ type PendingMessage struct {
 	Payload interface{} // payload
 	Err     bool        // if its an error message
 }
+
+type BroadcastMessage struct {
+	P []byte
+}

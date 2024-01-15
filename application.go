@@ -79,7 +79,7 @@ func (app *Application) addService(s facade.Service) {
 	}
 	props := actor.PropsFromProducer(func() actor.Actor {
 		return as
-	})
+	}).Configure(actor.WithMailbox(actor.UnboundedLockfree()))
 	pid, err := app.system.Root.SpawnNamed(props, s.Name())
 	if err != nil {
 		blog.Fatal("new service", slog.Any("service", s.Name()), blog.ErrAttr(err))

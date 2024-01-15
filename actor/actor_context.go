@@ -175,7 +175,8 @@ func (ctx *actorContext) Sender() *PID {
 }
 
 func (ctx *actorContext) Send(pid *PID, envelope *MessageEnvelope) {
-	envelope.Sender = ctx.self
+	// Do you want to receive DeadLetter?
+	//envelope.Sender = ctx.self
 	ctx.sendUserMessage(pid, envelope)
 }
 
@@ -345,13 +346,13 @@ func (ctx *actorContext) InvokeSystemMessage(message SystemMessage) {
 	case *Restart:
 		ctx.handleRestart()
 	default:
-		ctx.actorSystem.Logger().Warn("unknown system message", slog.Any("message", message))
+		ctx.Logger().Warn("unknown system message", slog.Any("message", message))
 	}
 }
 
 func (ctx *actorContext) handleRootFailure(failure *Failure) {
 	//defaultSupervisionStrategy.HandleFailure(ctx.actorSystem, ctx, failure.Who, failure.RestartStats, failure.Reason, failure.Envelope)
-	ctx.actorSystem.Logger().Warn("handleRootFailure", slog.Any("failure", failure))
+	ctx.Logger().Warn("handleRootFailure", slog.Any("failure", failure))
 }
 
 func (ctx *actorContext) InvokeUserMessage(envelope *MessageEnvelope) {
@@ -397,7 +398,7 @@ func (ctx *actorContext) handleStop() {
 		return
 	}
 
-	ctx.actorSystem.Logger().Warn("actor handleStop", slog.String("pid", ctx.self.String()))
+	ctx.Logger().Warn("actor handleStop", slog.String("pid", ctx.self.String()))
 	atomic.StoreInt32(&ctx.state, stateStopping)
 
 	ctx.InvokeUserMessage(stoppingMessage())

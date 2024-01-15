@@ -135,5 +135,9 @@ func (pr *ProcessRegistry) Get(pid *PID) (Process, bool) {
 }
 
 func (pr *ProcessRegistry) shutdown() {
+	//for k, d := range pr.LocalPIDs.LocalPIDs {
+	//	fmt.Printf("key : %v, count : %d \n", k, d.Count())
+	//}
+	//fmt.Printf("SequenceID : %v \n", pr.SequenceID)
 	pr.wg.Wait()
 }

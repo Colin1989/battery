@@ -1,12 +1,21 @@
 package actor
 
 import (
+	"runtime"
+	"sync/atomic"
+
 	"github.com/colin1989/battery/blog"
 	"github.com/colin1989/battery/queue/goring"
 	"github.com/colin1989/battery/queue/mpsc"
-	"runtime"
-	"sync/atomic"
 )
+
+// MailboxMiddleware is an interface for intercepting messages and events in the mailbox
+type MailboxMiddleware interface {
+	MailboxStarted()
+	MessagePosted(message interface{})
+	MessageReceived(message interface{})
+	MailboxEmpty()
+}
 
 type Mailbox interface {
 	Start()
@@ -32,11 +41,11 @@ const (
 )
 
 type defaultMailbox struct {
-	userMailbox   queue[*MessageEnvelope]
-	systemMailbox queue[SystemMessage]
-	dispatcher    Dispatcher
-	invoker       Invoker
-	//middlewares
+	userMailbox     queue[*MessageEnvelope]
+	systemMailbox   queue[SystemMessage]
+	dispatcher      Dispatcher
+	invoker         Invoker
+	middlewares     []MailboxMiddleware
 	schedulerStatus int32
 	userMessages    int32
 	sysMessages     int32

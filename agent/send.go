@@ -10,14 +10,6 @@ import (
 )
 
 func sendPacket(a *Agent, pendingMessage message.PendingMessage) {
-	//payload, err := util.SerializeOrRaw(a.serializer, pm.payload)
-	//if err != nil {
-	//	payload, err = util.GetErrorPayload(a.serializer, err)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-
 	payload, _ := util.SerializeOrRaw(a.app.Serializer(), pendingMessage.Payload)
 	// construct message and encode
 	m := &message.Message{

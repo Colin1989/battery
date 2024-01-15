@@ -11,6 +11,7 @@ import (
 	"github.com/colin1989/battery/errors"
 	"github.com/colin1989/battery/facade"
 	"github.com/colin1989/battery/net/message"
+	"github.com/colin1989/battery/net/wrap"
 	"github.com/colin1989/battery/util"
 )
 
@@ -62,45 +63,27 @@ func (as *ActorService) Receive(ctx actor.Context) {
 	envelope := ctx.Envelope()
 	switch msg := envelope.Message.(type) {
 	case *actor.Started:
-		ctx.ActorSystem().Logger().Debug("actor service started", slog.String("name", as.Name),
+		ctx.Logger().Debug("actor service started", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 		as.system = ctx.ActorSystem()
 		as.service.OnStart(ctx)
 	case *actor.Stopping:
-		ctx.ActorSystem().Logger().Debug("actor service stopping", slog.String("name", as.Name),
+		ctx.Logger().Debug("actor service stopping", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 	case *actor.Stopped:
-		ctx.ActorSystem().Logger().Debug("actor service stopped", slog.String("name", as.Name),
+		ctx.Logger().Debug("actor service stopped", slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 		as.service.OnDestroy(ctx)
 	case *message.Message:
-		//r.ProcessMessage(ctx, msg)
-		//as.service.ProcessMessage(ctx, msg)
-		//as.handlers[msg.Route]
 		as.handlerMessage(ctx, msg)
-	//case *actor.DeadLetterResponse:
-	//r.users.Remove(msg.Target)
-	//logger.Debug("room DeadLetterResponse", slog.String("pid", ctx.Self().String()))
 	default:
 		//as.service.Receive(ctx)
-		ctx.ActorSystem().Logger().Warn("actor service unsupported type",
+		ctx.Logger().Warn("actor service unsupported type",
 			slog.String("type", reflect.TypeOf(msg).String()),
 			slog.Any("msg", msg),
 			slog.String("name", as.Name),
 			slog.String("pid", ctx.Self().String()))
 	}
-}
-
-func (as *ActorService) RegisterHandler(m interface{}, f facade.ActorHandler) {
-	//handler := &Handler{
-	//	Method: f,
-	//	Type:   reflect.TypeOf(m),
-	//}
-	//if handler.Type.Kind() != reflect.Ptr {
-	//	logger.Fatal("need pointer")
-	//}
-	//method := reflect.TypeOf(m).Elem().Name()
-	//as.handlers[strings.ToLower(method)] = handler
 }
 
 func (as *ActorService) handlerMessage(ctx actor.Context, msg *message.Message) error {
@@ -126,7 +109,7 @@ func (as *ActorService) handlerMessage(ctx actor.Context, msg *message.Message) 
 	if err != nil && exit {
 		return errors.NewError(err, errors.ErrBadRequestCode)
 	} else if err != nil {
-		ctx.ActorSystem().Logger().Warn("invalid message type", blog.ErrAttr(err))
+		ctx.Logger().Warn("invalid message type", blog.ErrAttr(err))
 	}
 
 	// First unmarshal the handler arg that will be passed to
@@ -154,9 +137,9 @@ func (as *ActorService) handlerMessage(ctx actor.Context, msg *message.Message) 
 			if err != nil {
 				return err
 			}
-			ctx.Send(ctx.Sender(), actor.WrapResponseEnvelop(msg.ID, payload))
+			ctx.Send(ctx.Sender(), wrap.WrapResponseEnvelop(msg.ID, payload))
 		} else {
-			ctx.Send(ctx.Sender(), actor.WrapResponseEnvelop(msg.ID, ret))
+			ctx.Send(ctx.Sender(), wrap.WrapResponseEnvelop(msg.ID, ret))
 		}
 	}
 

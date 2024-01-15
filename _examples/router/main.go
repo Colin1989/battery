@@ -18,7 +18,7 @@ func (m *myMessage) Hash() string {
 func main() {
 	system := actor.NewActorSystem()
 	rootContext := system.Root
-	system.Logger().Info("Round robin routing:")
+	rootContext.Logger().Info("Round robin routing:")
 	act := func(ctx actor.Context) {
 		envelope := ctx.Envelope()
 		switch msg := envelope.Message.(type) {

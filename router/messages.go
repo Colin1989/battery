@@ -34,6 +34,7 @@ func GetRouteesEnvelope() *actor.MessageEnvelope {
 	return actor.WrapEnvelope(&GetRoutees{})
 }
 
+// BroadcastMessageEnvelope async broadcast message
 func BroadcastMessageEnvelope(envelope *actor.MessageEnvelope) *actor.MessageEnvelope {
 	return actor.WrapEnvelope(&BroadcastMessage{Message: envelope})
 }
