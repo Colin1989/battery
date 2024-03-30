@@ -1,0 +1,11 @@
+syntax = "proto3";
+package cluster;
+option go_package = "github.com/colin1989/battery/cluster";
+// import "actor.proto";
+
+message Member {
+    string host           = 1;
+    int32 port            = 2;
+    string id             = 3;
+    repeated string kinds = 4;
+}
