@@ -1,21 +1,38 @@
 syntax = "proto3";
 
+import "session.proto";
+
 option go_package = "github.com/colin1989/battery/protos";
 
 enum MsgType {
-  MsgRequest = 0;
-  MsgNotify = 1;
-  MsgResponse = 2;
-  MsgPush = 3;
+    MsgRequest  = 0;
+    MsgNotify   = 1;
+    MsgResponse = 2;
+    MsgPush     = 3;
+}
+
+message Msg {
+    uint64 id    = 1;
+    string route = 2;
+    bytes data   = 3;
+    string reply = 4;
+    MsgType type = 5;
+}
+
+message Request {
+    Session session   = 1;
+    Msg msg           = 2;
+    string frontendID = 3;
+    bytes metadata    = 4;
 }
 
 message Error {
-  string code = 1;
-  string msg = 2;
-  map<string, string> metadata = 3;
+    string code                  = 1;
+    string msg                   = 2;
+    map<string, string> metadata = 3;
 }
 
 message Response {
-  bytes data = 1;
-  Error error = 2;
+    bytes data  = 1;
+    Error error = 2;
 }

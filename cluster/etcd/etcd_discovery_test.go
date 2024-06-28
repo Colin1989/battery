@@ -27,7 +27,7 @@ func newClusterForTest(name, addr string, discover cluster.ServiceDiscovery) *cl
 }
 
 func TestEtcd(t *testing.T) {
-	etcdConfig := config.NewDefaultEtcdConfig()
+	etcdConfig := config.DefaultEtcdConfig()
 	etcdConfig.Endpoints = []string{"192.168.110.200:2379"}
 	etcd, err := NewWithConfig(etcdConfig)
 	assert.NoError(t, err)

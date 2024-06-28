@@ -29,7 +29,7 @@ func NewWSConn(conn *websocket.Conn) *WSConn {
 }
 
 // Read reads data from the connection.
-// Read can be made to time out and return an Error with Timeout() == true
+// Read can be made to time out and return an Error with ConnectTimeout() == true
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (w *WSConn) Read(b []byte) (int, error) {
 	if w.reader == nil {
@@ -55,7 +55,7 @@ func (w *WSConn) Read(b []byte) (int, error) {
 }
 
 // Write writes data to the connection.
-// Write can be made to time out and return an Error with Timeout() == true
+// Write can be made to time out and return an Error with ConnectTimeout() == true
 // after a fixed time limit; see SetDeadline and SetWriteDeadline.
 func (w *WSConn) Write(b []byte) (int, error) {
 	if err := w.conn.WriteMessage(websocket.BinaryMessage, b); err != nil {

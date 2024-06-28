@@ -34,7 +34,7 @@ type Discovery struct {
 }
 
 func New() (*Discovery, error) {
-	return NewWithConfig(config.NewDefaultEtcdConfig())
+	return NewWithConfig(config.DefaultEtcdConfig())
 }
 
 func NewWithConfig(cfg config.EtcdConfig) (*Discovery, error) {

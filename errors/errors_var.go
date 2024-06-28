@@ -30,4 +30,7 @@ var (
 	ErrWrongValueType                 = Errors("protobuf: convert on wrong type value")
 	ErrRouteFieldCantEmpty            = Errors("route field can not be empty")
 	ErrInvalidRoute                   = Errors("invalid route")
+
+	ErrRPCRequestTimeout       = Errors("rpc client: request timeout")
+	ErrRPCClientNotInitialized = Errors("RPC client is not running")
 )
